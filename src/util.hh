@@ -93,8 +93,10 @@ class array_iostreambuf :
 
   virtual std::streampos seekpos(std::streampos sp,
                                  std::ios_base::openmode which) override {
-    if (which == 0 || sp < 0 || sp >= buffer_.size())
+    if (which == 0 || sp < 0 ||
+        sp >= static_cast<std::streampos>(buffer_.size())) {
       return std::streampos(std::streamoff(-1));
+    }
 
     if (which & std::ios_base::in) {
       char* buffer_ptr = reinterpret_cast<char*>(buffer_.data());
