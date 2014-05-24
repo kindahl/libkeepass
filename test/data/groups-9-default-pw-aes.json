@@ -1,0 +1,42 @@
+{
+  "icon": 0,
+  "groups": [{
+    "icon": 48,
+    "name": "General",
+    "creation_time": "2014-05-15 19:23:16",
+    "modification_time": "2014-05-15 19:23:16",
+    "access_time": "2014-05-15 19:23:16",
+    "flags": 1,
+    "groups": [{
+      "icon": 38,
+      "name": "Windows",
+      "creation_time": "2014-05-15 19:23:16",
+      "modification_time": "2014-05-15 19:23:16",
+      "access_time": "2014-05-15 19:23:16"
+    }, {
+      "icon": 3,
+      "name": "Network",
+      "creation_time": "2014-05-15 19:23:16",
+      "modification_time": "2014-05-15 19:23:16",
+      "access_time": "2014-05-15 19:23:16"
+    }, {
+      "icon": 1,
+      "name": "Internet",
+      "creation_time": "2014-05-15 19:23:16",
+      "modification_time": "2014-05-15 19:23:16",
+      "access_time": "2014-05-15 19:23:16"
+    }, {
+      "icon": 19,
+      "name": "eMail",
+      "creation_time": "2014-05-15 19:23:16",
+      "modification_time": "2014-05-15 19:23:16",
+      "access_time": "2014-05-15 19:23:16"
+    }, {
+      "icon": 37,
+      "name": "Homebanking",
+      "creation_time": "2014-05-15 19:23:16",
+      "modification_time": "2014-05-15 19:23:16",
+      "access_time": "2014-05-15 19:23:16"
+    }]
+  }]
+}

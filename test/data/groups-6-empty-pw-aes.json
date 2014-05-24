@@ -1,0 +1,38 @@
+{
+  "icon": 0,
+  "groups": [{
+    "icon": 48,
+    "name": "0",
+    "creation_time": "2014-05-19 20:51:15",
+    "modification_time": "2014-05-19 20:55:00",
+    "access_time": "2014-05-19 20:55:00",
+    "flags": 1,
+    "groups": [{
+      "icon": 48,
+      "name": "1",
+      "creation_time": "2014-05-19 20:55:05",
+      "modification_time": "2014-05-19 20:55:05",
+      "access_time": "2014-05-19 20:55:05",
+      "flags": 1,
+      "groups": [{
+        "icon": 48,
+        "name": "2",
+        "creation_time": "2014-05-19 20:55:10",
+        "modification_time": "2014-05-19 20:55:10",
+        "access_time": "2014-05-19 20:55:10"
+      }, {
+        "icon": 48,
+        "name": "3",
+        "creation_time": "2014-05-19 20:57:06",
+        "modification_time": "2014-05-19 20:57:06",
+        "access_time": "2014-05-19 20:57:06"
+      }, {
+        "icon": 48,
+        "name": "4",
+        "creation_time": "2014-05-19 20:57:22",
+        "modification_time": "2014-05-19 20:57:22",
+        "access_time": "2014-05-19 20:57:22"
+      }]
+    }]
+  }]
+}

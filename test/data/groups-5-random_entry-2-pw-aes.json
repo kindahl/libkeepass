@@ -1,0 +1,44 @@
+{
+  "icon": 0,
+  "groups": [{
+    "icon": 48,
+    "name": "0",
+    "creation_time": "2014-05-19 20:51:15",
+    "modification_time": "2014-05-19 20:55:00",
+    "access_time": "2014-05-19 20:55:00",
+    "flags": 1,
+    "groups": [{
+      "icon": 48,
+      "name": "1",
+      "creation_time": "2014-05-19 20:55:05",
+      "modification_time": "2014-05-19 20:55:05",
+      "access_time": "2014-05-19 20:55:05",
+      "flags": 1,
+      "groups": [{
+        "icon": 48,
+        "name": "2",
+        "creation_time": "2014-05-19 20:55:10",
+        "modification_time": "2014-05-19 20:55:10",
+        "access_time": "2014-05-19 20:55:10",
+        "entries": [{
+          "icon": 0,
+          "title": "Donec elementum, lorem ut aliquam iaculis, lacus pede sagittis",
+          "url": "vel, convallis",
+          "username": "dignissim tempor arcu. Vestibulum ut eros non enim commodo",
+          "password": "hv0K3uFtYV2pFY6gW3RY",
+          "notes": "ornare, libero at auctor ullamcorper, nisl",
+          "creation_time": "2014-05-20 18:14:33",
+          "modification_time": "2014-05-20 18:14:47",
+          "access_time": "2014-05-20 18:14:47",
+          "expiry_time": "2014-05-20 18:14:32"
+        }]
+      }, {
+        "icon": 48,
+        "name": "3",
+        "creation_time": "2014-05-19 20:57:06",
+        "modification_time": "2014-05-19 20:57:06",
+        "access_time": "2014-05-19 20:57:06"
+      }]
+    }]
+  }]
+}
