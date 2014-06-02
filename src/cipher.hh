@@ -74,4 +74,46 @@ class AesCipher final : public Cipher<16> {
                        std::array<uint8_t, 16>& dst) const override;
 };
 
+class TwofishCipher final : public Cipher<16> {
+ private:
+  static const uint8_t kNumRounds = 16;
+
+  struct Key {
+    /** Key bits used for S-boxes. */
+    uint32_t sbox_keys[4];
+    /** Round subkeys, input/output whitening bits. */
+    uint32_t sub_keys[40];
+  } key_;
+
+  const std::array<uint8_t, 16> init_vec_;
+
+  inline uint32_t RotateLeft(uint32_t v, uint32_t n) const {
+    return (v << (n & 0x1f)) | (v >> (32 - (n & 0x1f)));
+  }
+
+  inline uint32_t RotateRight(uint32_t v, uint32_t n) const {
+    return (v >> (n & 0x1f)) | (v << (32 - (n & 0x1f)));
+  }
+
+  uint32_t ReedSolomonEncode(uint32_t k0, uint32_t k1) const;
+  uint32_t F32(uint32_t x, const uint32_t* k32) const;
+
+  void InitializeKey(const std::array<uint8_t, 32>& key);
+
+ public:
+  TwofishCipher(const std::array<uint8_t, 32>& key) :
+    TwofishCipher(key, { 0 }) {}
+  TwofishCipher(const std::array<uint8_t, 32>& key,
+                const std::array<uint8_t, 16>& init_vec);
+
+  const std::array<uint8_t, 16>& InitializationVector() const override {
+    return init_vec_;
+  }
+
+  virtual void Decrypt(const std::array<uint8_t, 16>& src,
+                       std::array<uint8_t, 16>& dst) const override;
+  virtual void Encrypt(const std::array<uint8_t, 16>& src,
+                       std::array<uint8_t, 16>& dst) const override;
+};
+
 }

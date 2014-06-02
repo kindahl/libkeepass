@@ -368,7 +368,8 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
     cipher.reset(new AesCipher(final_key, header.init_vector));
   } else if (header.flags & kKdbFlagTwoFish) {
     db->set_cipher(Database::Cipher::kTwoFish);
-    throw std::runtime_error("two fish crypto algorithm isn't implemented.");
+
+    cipher.reset(new TwofishCipher(final_key, header.init_vector));
   } else {
     throw std::runtime_error("illegal crypto algorithm in header.");
   }
