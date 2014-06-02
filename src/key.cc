@@ -18,6 +18,8 @@
 
 #include "key.hh"
 
+#include <algorithm>
+#include <fstream>
 #include <memory>
 
 #include <openssl/sha.h>
@@ -26,19 +28,61 @@
 
 namespace keepass {
 
+Key::CompositeKey::operator std::array<uint8_t, 32>() const {
+  static const std::array<uint8_t, 32> kEmptyKey = { { 0 } };
+
+  if (password_key_ != kEmptyKey) {
+    if (keyfile_key_ != kEmptyKey) {
+      std::array<uint8_t, 32> key;
+
+      SHA256_CTX sha256;
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256, &password_key_[0], password_key_.size());
+      SHA256_Update(&sha256, &keyfile_key_[0], keyfile_key_.size());
+      SHA256_Final(key.data(), &sha256);
+
+      return key;
+    } else {
+      return password_key_;
+    }
+  } else {
+    return keyfile_key_;
+  }
+}
+
 Key::Key(const std::string& password) {
+  SetPassword(password);
+}
+
+void Key::SetPassword(const std::string& password) {
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
   SHA256_Update(&sha256, reinterpret_cast<const uint8_t*>(password.c_str()),
                 password.size());
-  SHA256_Final(const_cast<uint8_t*>(key_.data()), &sha256);
+  SHA256_Final(key_.password_key_.data(), &sha256);
 }
 
-Key::Key(const std::vector<uint8_t>& password) {
-  SHA256_CTX sha256;
-  SHA256_Init(&sha256);
-  SHA256_Update(&sha256, &password[0], password.size());
-  SHA256_Final(const_cast<uint8_t*>(key_.data()), &sha256);
+void Key::SetKeyFile(const std::string& path) {
+  std::ifstream src(path, std::ios::in | std::ios::binary);
+  if (!src.is_open())
+    throw std::runtime_error("file not found.");
+
+  std::vector<char> data;
+  std::copy(std::istreambuf_iterator<char>(src), 
+            std::istreambuf_iterator<char>(), 
+            std::back_inserter(data));
+  if (data.size() != 64)
+    throw std::runtime_error("unknown key file format.");
+
+  for (std::size_t i = 0; i < key_.keyfile_key_.size(); ++i) {
+    char c[2] = { data[i * 2], data[i * 2 + 1] };
+
+    if (!std::isxdigit(c[0]) || !std::isxdigit(c[1]))
+      throw std::runtime_error("unknown key file format.");
+
+    uint8_t v = std::stoi(std::string(c, 2), 0, 16);
+    key_.keyfile_key_[i] = v;
+  }
 }
 
 std::array<uint8_t, 32> Key::Transform(const std::array<uint8_t, 32>& seed,

@@ -344,3 +344,33 @@ TEST(KdbTest, ImportComplex1) {
   EXPECT_NE(root, nullptr);
   EXPECT_EQ(root->ToJson(), GetTestJson("complex-1-pw-aes.json"));
 }
+
+TEST(KdbTest, ImportComplex1KeyFile) {
+  Key key;
+  key.SetKeyFile(GetTestPath("complex-1-key-tf.key"));
+
+  KdbFile file;
+  std::unique_ptr<Database> db;
+  EXPECT_NO_THROW({
+    db = file.Import(GetTestPath("complex-1-key-tf.kdb"), key);
+  });
+
+  std::shared_ptr<Group> root = db->root().lock();
+  EXPECT_NE(root, nullptr);
+  EXPECT_EQ(root->ToJson(), GetTestJson("complex-1-key-tf.json"));
+}
+
+TEST(KdbTest, ImportComplex1KeyFileAndPassword) {
+  Key key("password");
+  key.SetKeyFile(GetTestPath("complex-1-key_pw-tf.key"));
+
+  KdbFile file;
+  std::unique_ptr<Database> db;
+  EXPECT_NO_THROW({
+    db = file.Import(GetTestPath("complex-1-key_pw-tf.kdb"), key);
+  });
+
+  std::shared_ptr<Group> root = db->root().lock();
+  EXPECT_NE(root, nullptr);
+  EXPECT_EQ(root->ToJson(), GetTestJson("complex-1-key_pw-tf.json"));
+}

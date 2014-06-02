@@ -25,11 +25,19 @@ namespace keepass {
 
 class Key final {
  private:
-  const std::array<uint8_t, 32> key_ = { { 0 } };
+  struct CompositeKey {
+    std::array<uint8_t, 32> password_key_ = { { 0 } };
+    std::array<uint8_t, 32> keyfile_key_ = { { 0 } };
+
+    operator std::array<uint8_t, 32>() const;
+  } key_;
 
  public:
+  Key() = default;
   Key(const std::string& password);
-  Key(const std::vector<uint8_t>& password);
+
+  void SetPassword(const std::string& password);
+  void SetKeyFile(const std::string& path);
 
   std::array<uint8_t, 32> Transform(const std::array<uint8_t, 32>& seed,
                                     const uint32_t rounds) const;
