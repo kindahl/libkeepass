@@ -33,7 +33,8 @@ int main(int argc, const char * argv[]) {
     Key key("password");
 
     KdbFile file;
-    file.Import(argv[1], key);
+    std::cout << file.Import(argv[1], key)->root().lock()->ToJson() <<
+        std::endl;
   } catch (std::runtime_error& e) {
     std::cerr << "error: " << e.what() << std::endl;
   }
