@@ -40,7 +40,7 @@ const uint32_t kKdbSignature1 = 0xb54bfb65;
 const uint32_t kKdbFlagSha2 = 0x00000001;
 const uint32_t kKdbFlagRijndael = 0x00000002;
 const uint32_t kKdbFlagArcFour = 0x00000004;
-const uint32_t kKdbFlagTwoFish = 0x00000008;
+const uint32_t kKdbFlagTwofish = 0x00000008;
 
 #pragma pack(push, 1)
 struct KdbHeader {
@@ -518,8 +518,8 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
     db->set_cipher(Database::Cipher::kAes);
 
     cipher.reset(new AesCipher(final_key, header.init_vector));
-  } else if (header.flags & kKdbFlagTwoFish) {
-    db->set_cipher(Database::Cipher::kTwoFish);
+  } else if (header.flags & kKdbFlagTwofish) {
+    db->set_cipher(Database::Cipher::kTwofish);
 
     cipher.reset(new TwofishCipher(final_key, header.init_vector));
   } else {
@@ -654,7 +654,7 @@ void KdbFile::Export(const std::string& path, const Database& db,
     case Database::Cipher::kAes:
       cipher.reset(new AesCipher(final_key, db.init_vector()));
       break;
-    case Database::Cipher::kTwoFish:
+    case Database::Cipher::kTwofish:
       cipher.reset(new TwofishCipher(final_key, db.init_vector()));
       break;
     default:
@@ -718,7 +718,7 @@ void KdbFile::Export(const std::string& path, const Database& db,
   header.signature0 = kKdbSignature0;
   header.signature1 = kKdbSignature1;
   header.flags = db.cipher() == Database::Cipher::kAes ?
-      kKdbFlagRijndael : kKdbFlagTwoFish;
+      kKdbFlagRijndael : kKdbFlagTwofish;
   header.version = 0x00030000;
   header.master_seed = db.master_seed();
   header.init_vector = db.init_vector();

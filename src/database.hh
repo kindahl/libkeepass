@@ -27,7 +27,7 @@ class Database final {
  public:
   enum class Cipher {
     kAes,
-    kTwoFish
+    kTwofish
   };
 
  private:
