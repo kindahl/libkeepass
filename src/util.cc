@@ -53,6 +53,17 @@ std::vector<char> consume<std::vector<char>>(std::istream& src) {
   return data;
 }
 
+template <>
+void conserve<std::string>(std::ostream& dst, const std::string& val) {
+  dst.write(val.c_str(), val.size() + 1);   // FIXME: Is this safe?
+}
+
+template <>
+void conserve<std::vector<char>>(std::ostream& dst,
+                                 const std::vector<char>& val) {
+  dst.write(&val[0], val.size());
+}
+
 std::string time_to_str(const std::time_t &time) {
   const std::tm* local_time = std::localtime(&time);
   assert(local_time != nullptr);

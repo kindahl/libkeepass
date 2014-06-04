@@ -26,7 +26,7 @@ namespace keepass {
 
 class Entry final {
  public:
-  class Attachment {
+  class Attachment final {
    private:
     std::string name_;
     std::vector<char> data_;
@@ -60,7 +60,7 @@ class Entry final {
   std::time_t modification_time_ = 0;
   std::time_t access_time_ = 0;
   std::time_t expiry_time_ = 0;
-  std::unique_ptr<Attachment> attachment_;
+  std::shared_ptr<Attachment> attachment_;
 
  public:
   const std::array<uint8_t, 16>& uuid() const { return uuid_; }
@@ -98,9 +98,9 @@ class Entry final {
   std::time_t expiry_time() const { return expiry_time_; }
   void set_expiry_time(const std::time_t& time) { expiry_time_ = time; }
 
-  // FIXME: Getting the attachment requires shared_ptr.
-  void set_attachment(std::unique_ptr<Attachment>& attachment) {
-    attachment_ = std::move(attachment);
+  std::shared_ptr<Attachment> attachment() const { return attachment_; }
+  void set_attachment(std::shared_ptr<Attachment> attachment) {
+    attachment_ = attachment;
   }
 
   bool HasAttachment() const;

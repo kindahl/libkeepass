@@ -47,10 +47,18 @@ std::string consume<std::string>(std::istream& src);
 template <>
 std::vector<char> consume<std::vector<char>>(std::istream& src);
 
+// FIXME: Move to separate io.cc io.hh?
 template<typename T>
-void conserve(std::ostream& dst, T val) {
+void conserve(std::ostream& dst, const T& val) {
   dst.write(reinterpret_cast<const char*>(&val), sizeof(T));
 }
+
+template <>
+void conserve<std::string>(std::ostream& dst, const std::string& val);
+
+template <>
+void conserve<std::vector<char>>(std::ostream& dst,
+                                 const std::vector<char>& val);
 
 template <std::size_t N>
 class array_iostreambuf :

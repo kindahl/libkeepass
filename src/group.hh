@@ -62,6 +62,9 @@ class Group final {
   uint16_t flags() const { return flags_; }
   void set_flags(const uint16_t& flags) { flags_ = flags; }
 
+  const std::vector<std::shared_ptr<Group>>& Groups() const;
+  const std::vector<std::shared_ptr<Entry>>& Entries() const;
+
   void AddGroup(std::shared_ptr<Group> group);
   void AddEntry(std::shared_ptr<Entry> entry);
 

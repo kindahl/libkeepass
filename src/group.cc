@@ -24,6 +24,14 @@
 
 namespace keepass {
 
+const std::vector<std::shared_ptr<Group>>& Group::Groups() const {
+  return groups_;
+}
+
+const std::vector<std::shared_ptr<Entry>>& Group::Entries() const {
+  return entries_;
+}
+
 void Group::AddGroup(std::shared_ptr<Group> group) {
   groups_.push_back(group);
 }
