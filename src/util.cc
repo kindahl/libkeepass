@@ -61,7 +61,7 @@ void conserve<std::string>(std::ostream& dst, const std::string& val) {
 template <>
 void conserve<std::vector<char>>(std::ostream& dst,
                                  const std::vector<char>& val) {
-  dst.write(&val[0], val.size());
+  dst.write(val.data(), val.size());
 }
 
 std::string time_to_str(const std::time_t &time) {

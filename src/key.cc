@@ -37,8 +37,8 @@ Key::CompositeKey::operator std::array<uint8_t, 32>() const {
 
       SHA256_CTX sha256;
       SHA256_Init(&sha256);
-      SHA256_Update(&sha256, &password_key_[0], password_key_.size());
-      SHA256_Update(&sha256, &keyfile_key_[0], keyfile_key_.size());
+      SHA256_Update(&sha256, password_key_.data(), password_key_.size());
+      SHA256_Update(&sha256, keyfile_key_.data(), keyfile_key_.size());
       SHA256_Final(key.data(), &sha256);
 
       return key;
