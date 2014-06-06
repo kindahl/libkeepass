@@ -54,6 +54,22 @@ std::vector<char> consume<std::vector<char>>(std::istream& src) {
 }
 
 template <>
+std::vector<uint8_t> consume<std::vector<uint8_t>>(std::istream& src) {
+  // FIXME: This function needs to be made more efficient.
+  std::vector<char> data;
+  std::copy(std::istreambuf_iterator<char>(src),
+            std::istreambuf_iterator<char>(),
+            std::back_inserter(data));
+
+  std::vector<uint8_t> unsigned_data;
+  unsigned_data.resize(data.size());
+  for (std::size_t i = 0; i < data.size(); ++i)
+    unsigned_data[i] = data[i];
+
+  return unsigned_data;
+}
+
+template <>
 void conserve<std::string>(std::ostream& dst, const std::string& val) {
   dst.write(val.c_str(), val.size() + 1);   // FIXME: Is this safe?
 }

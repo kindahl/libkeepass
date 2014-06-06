@@ -47,6 +47,9 @@ std::string consume<std::string>(std::istream& src);
 template <>
 std::vector<char> consume<std::vector<char>>(std::istream& src);
 
+template <>
+std::vector<uint8_t> consume<std::vector<uint8_t>>(std::istream& src);
+
 // FIXME: Move to separate io.cc io.hh?
 template<typename T>
 void conserve(std::ostream& dst, const T& val) {
