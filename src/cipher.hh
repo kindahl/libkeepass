@@ -116,4 +116,28 @@ class TwofishCipher final : public Cipher<16> {
                        std::array<uint8_t, 16>& dst) const override;
 };
 
+/**
+ * @brief Salsa20 stream cipher implementation.
+ */
+class Salsa20Cipher final {
+ private:
+  std::array<uint32_t, 16> input_ = { { 0 } };
+
+  inline uint32_t RotateLeft(uint32_t v, uint32_t n) const {
+    return (v << (n & 0x1f)) | (v >> (32 - (n & 0x1f)));
+  }
+
+  std::array<uint8_t, 64> WordToByte(
+      const std::array<uint32_t, 16>& input) const;
+
+ public:
+  Salsa20Cipher(const std::array<uint8_t, 32>& key) :
+    Salsa20Cipher(key, { 0 }) {}
+  Salsa20Cipher(const std::array<uint8_t, 32>& key,
+                const std::array<uint8_t, 8>& init_vec);
+
+  void Process(const std::array<uint8_t, 64>& src,
+               std::array<uint8_t, 64>& dst);
+};
+
 }

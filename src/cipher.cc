@@ -450,4 +450,94 @@ void TwofishCipher::Encrypt(const std::array<uint8_t, 16>& src,
     dst_ptr[i] ^= key_.sub_keys[i + 4];
 }
 
+Salsa20Cipher::Salsa20Cipher(const std::array<uint8_t, 32>& key,
+                             const std::array<uint8_t, 8>& init_vec) {
+  static const char* kSigma = "expand 32-byte k";
+
+  const uint8_t* key_ptr = key.data();
+
+  input_[1] = *reinterpret_cast<const uint32_t*>(key_ptr + 0);
+  input_[2] = *reinterpret_cast<const uint32_t*>(key_ptr + 4);
+  input_[3] = *reinterpret_cast<const uint32_t*>(key_ptr + 8);
+  input_[4] = *reinterpret_cast<const uint32_t*>(key_ptr + 12);
+
+  input_[11] = *reinterpret_cast<const uint32_t*>(key_ptr + 16);
+  input_[12] = *reinterpret_cast<const uint32_t*>(key_ptr + 20);
+  input_[13] = *reinterpret_cast<const uint32_t*>(key_ptr + 24);
+  input_[14] = *reinterpret_cast<const uint32_t*>(key_ptr + 28);
+  input_[0] = *reinterpret_cast<const uint32_t*>(kSigma + 0);
+  input_[5] = *reinterpret_cast<const uint32_t*>(kSigma + 4);
+  input_[10] = *reinterpret_cast<const uint32_t*>(kSigma + 8);
+  input_[15] = *reinterpret_cast<const uint32_t*>(kSigma + 12);
+
+  input_[6] = *reinterpret_cast<const uint32_t*>(init_vec.data() + 0);
+  input_[7] = *reinterpret_cast<const uint32_t*>(init_vec.data() + 4);
+  input_[8] = 0;
+  input_[9] = 0;
+}
+
+std::array<uint8_t, 64> Salsa20Cipher::WordToByte(
+    const std::array<uint32_t, 16>& input) const {
+  uint32_t x[16];
+
+  for (std::size_t i = 0; i < 16; ++i)
+    x[i] = input[i];
+
+  for (std::size_t i = 0; i < 10; ++i) {
+    x[ 4] ^= RotateLeft(x[ 0] + x[12],  7);
+    x[ 8] ^= RotateLeft(x[ 4] + x[ 0],  9);
+    x[12] ^= RotateLeft(x[ 8] + x[ 4], 13);
+    x[ 0] ^= RotateLeft(x[12] + x[ 8], 18);
+    x[ 9] ^= RotateLeft(x[ 5] + x[ 1],  7);
+    x[13] ^= RotateLeft(x[ 9] + x[ 5],  9);
+    x[ 1] ^= RotateLeft(x[13] + x[ 9], 13);
+    x[ 5] ^= RotateLeft(x[ 1] + x[13], 18);
+    x[14] ^= RotateLeft(x[10] + x[ 6],  7);
+    x[ 2] ^= RotateLeft(x[14] + x[10],  9);
+    x[ 6] ^= RotateLeft(x[ 2] + x[14], 13);
+    x[10] ^= RotateLeft(x[ 6] + x[ 2], 18);
+    x[ 3] ^= RotateLeft(x[15] + x[11],  7);
+    x[ 7] ^= RotateLeft(x[ 3] + x[15],  9);
+    x[11] ^= RotateLeft(x[ 7] + x[ 3], 13);
+    x[15] ^= RotateLeft(x[11] + x[ 7], 18);
+    x[ 1] ^= RotateLeft(x[ 0] + x[ 3],  7);
+    x[ 2] ^= RotateLeft(x[ 1] + x[ 0],  9);
+    x[ 3] ^= RotateLeft(x[ 2] + x[ 1], 13);
+    x[ 0] ^= RotateLeft(x[ 3] + x[ 2], 18);
+    x[ 6] ^= RotateLeft(x[ 5] + x[ 4],  7);
+    x[ 7] ^= RotateLeft(x[ 6] + x[ 5],  9);
+    x[ 4] ^= RotateLeft(x[ 7] + x[ 6], 13);
+    x[ 5] ^= RotateLeft(x[ 4] + x[ 7], 18);
+    x[11] ^= RotateLeft(x[10] + x[ 9],  7);
+    x[ 8] ^= RotateLeft(x[11] + x[10],  9);
+    x[ 9] ^= RotateLeft(x[ 8] + x[11], 13);
+    x[10] ^= RotateLeft(x[ 9] + x[ 8], 18);
+    x[12] ^= RotateLeft(x[15] + x[14],  7);
+    x[13] ^= RotateLeft(x[12] + x[15],  9);
+    x[14] ^= RotateLeft(x[13] + x[12], 13);
+    x[15] ^= RotateLeft(x[14] + x[13], 18);
+  }
+
+  for (std::size_t i = 0; i < 16; ++i)
+    x[i] = x[i] + input[i];
+
+  std::array<uint8_t, 64> output;
+  for (std::size_t i = 0; i < 16; ++i)
+    *reinterpret_cast<uint32_t*>(output.data() + 4 * i) = x[i];
+
+  return output;
+}
+
+void Salsa20Cipher::Process(const std::array<uint8_t, 64>& src,
+                            std::array<uint8_t, 64>& dst) {
+  std::array<uint8_t, 64> output = WordToByte(input_);
+
+  input_[8]++;
+  if (!input_[8])
+    input_[9]++;
+
+  for (std::size_t i = 0; i < src.size(); ++i)
+    dst[i] = src[i] ^ output[i];
+}
+
 }   // namespace keepass
