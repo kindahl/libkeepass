@@ -19,6 +19,7 @@
 #include <iostream>
 
 #include "kdb.hh"
+#include "kdbx.hh"
 #include "key.hh"
 
 using namespace keepass;
@@ -32,9 +33,25 @@ int main(int argc, const char * argv[]) {
   try {
     Key key("password");
 
-    KdbFile file;
-    std::cout << file.Import(argv[1], key)->root().lock()->ToJson() <<
-        std::endl;
+    bool kdbx = true;   // Assume KDBX by default.
+
+    // Check if KDB file.
+    std::string path = argv[1];
+    std::size_t ext_delim = path.rfind('.');
+    if (ext_delim != std::string::npos) {
+      if (path.substr(ext_delim, path.size() - ext_delim) == ".kdb")
+        kdbx = false;
+    }
+
+    if (kdbx) {
+      KdbxFile file;
+      std::cout << file.Import(path, key)->root().lock()->ToJson() <<
+          std::endl;
+    } else {
+      KdbFile file;
+      std::cout << file.Import(path, key)->root().lock()->ToJson() <<
+          std::endl;
+    }
   } catch (std::runtime_error& e) {
     std::cerr << "error: " << e.what() << std::endl;
   }
