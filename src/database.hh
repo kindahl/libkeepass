@@ -17,11 +17,15 @@
  */
 
 #pragma once
+#include <array>
 #include <memory>
+#include <vector>
 
 #include "group.hh"
 
 namespace keepass {
+
+class Metadata;
 
 class Database final {
  public:
@@ -33,10 +37,12 @@ class Database final {
  private:
   std::shared_ptr<Group> root_;
   Cipher cipher_ = Cipher::kAes;
-  std::array<uint8_t, 16> master_seed_;
-  std::array<uint8_t, 16> init_vector_;
-  std::array<uint8_t, 32> transform_seed_;
-  uint32_t transform_rounds_ = 8192;
+  std::vector<uint8_t> master_seed_;
+  std::array<uint8_t, 16> init_vector_ = { { 0 } };
+  std::array<uint8_t, 32> transform_seed_ { { 0 } };
+  uint64_t transform_rounds_ = 8192;
+  bool compressed_ = false;
+  std::shared_ptr<Metadata> meta_;
 
  public:
   std::weak_ptr<Group> root() const { return root_; }
@@ -45,27 +51,37 @@ class Database final {
   Cipher cipher() const { return cipher_; }
   void set_cipher(Cipher cipher) { cipher_ = cipher; }
 
-  const std::array<uint8_t, 16>& master_seed() const { return master_seed_; }
-  void set_master_seed(std::array<uint8_t, 16>& master_seed) {
+  const std::vector<uint8_t>& master_seed() const { return master_seed_; }
+  void set_master_seed(const std::array<uint8_t, 16>& master_seed) {
+    master_seed_.resize(16);
+    std::copy(master_seed.begin(), master_seed.end(), master_seed_.begin());
+  }
+  void set_master_seed(const std::vector<uint8_t>& master_seed) {
     master_seed_ = master_seed;
   }
 
   const std::array<uint8_t, 16>& init_vector() const { return init_vector_; }
-  void set_init_vector(std::array<uint8_t, 16>& init_vector) {
+  void set_init_vector(const std::array<uint8_t, 16>& init_vector) {
     init_vector_ = init_vector;
   }
 
   const std::array<uint8_t, 32>& transform_seed() const {
     return transform_seed_;
   }
-  void set_transform_seed(std::array<uint8_t, 32>& transform_seed) {
+  void set_transform_seed(const std::array<uint8_t, 32>& transform_seed) {
     transform_seed_ = transform_seed;
   }
 
-  uint32_t transform_rounds() const { return transform_rounds_; }
-  void set_transform_rounds(uint32_t transform_rounds) {
+  uint64_t transform_rounds() const { return transform_rounds_; }
+  void set_transform_rounds(uint64_t transform_rounds) {
     transform_rounds_ = transform_rounds;
   }
+
+  bool compressed() const { return compressed_; }
+  void set_compressed(bool compressed) { compressed_ = compressed; }
+
+  std::shared_ptr<Metadata> meta() const { return meta_; }
+  void set_meta(std::shared_ptr<Metadata> meta) { meta_ = meta; }
 };
 
 }   // namespace keepass

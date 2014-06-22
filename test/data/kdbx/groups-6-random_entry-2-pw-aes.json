@@ -1,0 +1,53 @@
+{
+  "icon": 49,
+  "name": "groups-6-random_entry-2-pw-aes",
+  "creation_time": "2014-06-05 21:34:13",
+  "modification_time": "2014-06-05 21:34:13",
+  "access_time": "2014-06-05 21:34:24",
+  "expiry_time": "2014-06-05 21:30:40",
+  "groups": [{
+    "icon": 48,
+    "name": "0",
+    "creation_time": "2014-05-19 20:51:15",
+    "modification_time": "2014-05-19 20:55:00",
+    "access_time": "2014-05-19 20:55:00",
+    "groups": [{
+      "icon": 48,
+      "name": "1",
+      "creation_time": "2014-05-19 20:55:05",
+      "modification_time": "2014-05-19 20:55:05",
+      "access_time": "2014-05-19 20:55:05",
+      "groups": [{
+        "icon": 48,
+        "name": "2",
+        "creation_time": "2014-05-19 20:55:10",
+        "modification_time": "2014-05-19 20:55:10",
+        "access_time": "2014-05-19 20:55:10"
+      }, {
+        "icon": 48,
+        "name": "3",
+        "creation_time": "2014-05-19 20:57:06",
+        "modification_time": "2014-05-19 20:57:06",
+        "access_time": "2014-05-19 20:57:06",
+        "entries": [{
+          "icon": 0,
+          "title": "aliquam eros turpis non enim.",
+          "url": "fermentum convallis ligula. Donec luctus",
+          "username": "fringilla cursus purus. Nullam scelerisque neque sed sem",
+          "password": "Ujcq50XFl2zfszu5zhKk",
+          "notes": "id sapien. Cras dolor dolor,",
+          "creation_time": "2014-05-20 18:15:50",
+          "modification_time": "2014-05-20 18:16:04",
+          "access_time": "2014-05-20 18:16:04",
+          "expiry_time": "2014-05-20 18:15:46"
+        }]
+      }, {
+        "icon": 48,
+        "name": "4",
+        "creation_time": "2014-05-19 20:57:22",
+        "modification_time": "2014-05-19 20:57:22",
+        "access_time": "2014-05-19 20:57:22"
+      }]
+    }]
+  }]
+}

@@ -1,0 +1,47 @@
+{
+  "icon": 49,
+  "name": "groups-2-random_entry-3-pw-aes",
+  "creation_time": "2014-06-05 21:24:51",
+  "modification_time": "2014-06-05 21:24:51",
+  "access_time": "2014-06-05 21:25:01",
+  "expiry_time": "2014-06-05 21:17:24",
+  "groups": [{
+    "icon": 48,
+    "name": "0",
+    "creation_time": "2014-05-19 20:51:15",
+    "modification_time": "2014-05-19 20:55:00",
+    "access_time": "2014-05-19 20:55:00",
+    "groups": [{
+      "icon": 48,
+      "name": "1",
+      "creation_time": "2014-05-19 20:55:05",
+      "modification_time": "2014-05-19 20:55:05",
+      "access_time": "2014-05-19 20:55:05",
+      "groups": [{
+        "icon": 48,
+        "name": "2",
+        "creation_time": "2014-05-19 20:55:10",
+        "modification_time": "2014-05-19 20:55:10",
+        "access_time": "2014-05-19 20:55:10",
+        "entries": [{
+          "icon": 0,
+          "title": "semper tellus",
+          "url": "Donec luctus",
+          "username": "vel pede blandit congue. In",
+          "password": "VF6Sy99CplyvjZMgmr5A",
+          "notes": "neque tellus, imperdiet non, vestibulum nec, euismod",
+          "creation_time": "2014-05-20 18:10:08",
+          "modification_time": "2014-05-20 18:10:35",
+          "access_time": "2014-05-20 18:10:35",
+          "expiry_time": "2014-05-20 18:10:07"
+        }]
+      }]
+    }, {
+      "icon": 48,
+      "name": "3",
+      "creation_time": "2014-05-19 20:55:43",
+      "modification_time": "2014-05-19 20:56:15",
+      "access_time": "2014-05-19 20:56:15"
+    }]
+  }]
+}

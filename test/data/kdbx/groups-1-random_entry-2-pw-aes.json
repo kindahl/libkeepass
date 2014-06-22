@@ -1,0 +1,41 @@
+{
+  "icon": 49,
+  "name": "groups-1-random_entry-2-pw-aes",
+  "creation_time": "2014-06-05 21:19:51",
+  "modification_time": "2014-06-05 21:19:51",
+  "access_time": "2014-06-05 21:20:02",
+  "expiry_time": "2014-06-05 21:17:24",
+  "groups": [{
+    "icon": 48,
+    "name": "0",
+    "creation_time": "2014-05-19 20:51:15",
+    "modification_time": "2014-05-19 20:55:00",
+    "access_time": "2014-05-19 20:55:00",
+    "groups": [{
+      "icon": 48,
+      "name": "1",
+      "creation_time": "2014-05-19 20:55:05",
+      "modification_time": "2014-05-19 20:55:05",
+      "access_time": "2014-05-19 20:55:05",
+      "groups": [{
+        "icon": 48,
+        "name": "2",
+        "creation_time": "2014-05-19 20:55:10",
+        "modification_time": "2014-05-19 20:55:10",
+        "access_time": "2014-05-19 20:55:10"
+      }],
+      "entries": [{
+        "icon": 0,
+        "title": "lobortis ultrices. Vivamus rhoncus. Donec est.",
+        "url": "sit amet, consectetuer adipiscing elit. Aliquam auctor,",
+        "username": "Integer vulputate,",
+        "password": "oUhZYmEraShgh84zkJ6X",
+        "notes": "Mauris non",
+        "creation_time": "2014-05-19 21:05:17",
+        "modification_time": "2014-05-19 21:05:48",
+        "access_time": "2014-05-19 21:05:48",
+        "expiry_time": "2014-05-19 21:04:52"
+      }]
+    }]
+  }]
+}

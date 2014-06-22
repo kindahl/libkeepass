@@ -368,7 +368,7 @@ std::shared_ptr<Entry> KdbFile::ReadEntry(std::istream& src,
         break;
       case KdbEntryFieldType::kEnd:
         if (attachment)
-          entry->set_attachment(attachment);
+          entry->AddAttachment(attachment);
         return entry;
       default:
         throw std::runtime_error("illegal field in entry.");
@@ -441,7 +441,8 @@ void KdbFile::WriteEntry(std::ostream& dst,
   conserve<KdbTime>(dst, expiry_time);
 
   if (entry->HasAttachment()) {
-    std::shared_ptr<Entry::Attachment> attachment = entry->attachment();
+    assert(entry->GetAttachments().size() == 1);
+    std::shared_ptr<Entry::Attachment> attachment = entry->GetAttachments()[0];
     if (!attachment->name().empty()) {
       conserve<uint16_t>(dst, static_cast<uint16_t>(
           KdbEntryFieldType::kAttachmentName));
@@ -504,7 +505,8 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
 
   // Produce the final key used for decrypting the contents.
   std::array<uint8_t, 32> transformed_key = key.Transform(
-      header.transform_seed, header.transform_rounds);
+      header.transform_seed, header.transform_rounds,
+      Key::SubKeyResolution::kHashSubKeysOnlyIfCompositeKey);
   std::array<uint8_t, 32> final_key;
 
   SHA256_CTX sha256;
@@ -634,13 +636,20 @@ void dfs(const std::shared_ptr<T>& current,
 
 void KdbFile::Export(const std::string& path, const Database& db,
                      const Key& key) {
+  // Extract database values in compatible formats.
+  assert(db.master_seed().size() == 16);
+  std::array<uint8_t, 16> master_seed;
+  std::copy(db.master_seed().begin(), db.master_seed().end(),
+            master_seed.begin());
+
   std::ofstream dst(path, std::ios::out | std::ios::binary);
   if (!dst.is_open())
     throw std::runtime_error("unable to open file.");
 
   // Produce the final key used for encrypting the contents.
   std::array<uint8_t, 32> transformed_key = key.Transform(
-      db.transform_seed(), db.transform_rounds());
+      db.transform_seed(), db.transform_rounds(),
+      Key::SubKeyResolution::kHashSubKeysOnlyIfCompositeKey);
   std::array<uint8_t, 32> final_key;
 
   SHA256_CTX sha256;
@@ -720,7 +729,7 @@ void KdbFile::Export(const std::string& path, const Database& db,
   header.flags = db.cipher() == Database::Cipher::kAes ?
       kKdbFlagRijndael : kKdbFlagTwofish;
   header.version = 0x00030000;
-  header.master_seed = db.master_seed();
+  header.master_seed = master_seed;
   header.init_vector = db.init_vector();
   header.num_groups = num_groups;
   header.num_entries = num_entries;

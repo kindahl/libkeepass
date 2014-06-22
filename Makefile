@@ -11,7 +11,7 @@ OBJ_DIR := $(OUT_DIR)/obj
 
 CCFLAGS := -MMD
 ifeq ($(DEBUG),YES)
-  CCFLAGS += -g
+  CCFLAGS += -g -DDEBUG
 endif
 
 # Library.
