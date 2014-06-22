@@ -28,7 +28,7 @@ using namespace keepass;
 namespace {
 
 std::string GetTestPath(const std::string& name) {
-  return "./test/data/" + name;
+  return "./test/data/kdb/" + name;
 }
 
 std::string GetTmpPath(const std::string& name) {
