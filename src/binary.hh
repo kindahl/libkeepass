@@ -16,20 +16,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "metadata.hh"
+#pragma once
+#include <string>
+
+#include "security.hh"
 
 namespace keepass {
 
-void Metadata::AddBinary(std::shared_ptr<Binary> binary) {
-  binaries_.push_back(binary);
-}
+class Binary final {
+ private:
+  protect<std::string> data_;
 
-void Metadata::AddIcon(std::shared_ptr<Icon> icon) {
-  icons_.push_back(icon);
-}
+ public:
+  Binary(const protect<std::string>& data) :
+      data_(data) {}
 
-void Metadata::AddField(const std::string& key, const std::string& value) {
-  fields_.push_back(Field(key, value));
-}
+  bool Empty() const { return data_->empty(); }
+  std::size_t Size() const { return data_->size(); }
+
+  const protect<std::string>& data() const { return data_; }
+  void set_data(const protect<std::string>& data) { data_ = data; }
+
+  bool operator==(const Binary& other) const {
+    return data_ == other.data_;
+  }
+  bool operator!=(const Binary& other) const {
+    return !(*this == other);
+  }
+};
 
 }   // namespace keepass

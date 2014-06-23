@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "binary.hh"
 #include "icon.hh"
 #include "temporal.hh"
 
@@ -105,6 +106,7 @@ class Metadata final {
   std::weak_ptr<Group> last_selected_group_;
   std::weak_ptr<Group> last_visible_group_;
 
+  std::vector<std::shared_ptr<Binary>> binaries_;
   std::vector<std::shared_ptr<Icon>> icons_;
   std::vector<Field> fields_;
 
@@ -194,6 +196,7 @@ class Metadata final {
     last_visible_group_ = group;
   }
 
+  void AddBinary(std::shared_ptr<Binary> binary);
   void AddIcon(std::shared_ptr<Icon> icon);
   void AddField(const std::string& key, const std::string& value);
 };

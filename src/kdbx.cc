@@ -241,10 +241,10 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
         bin_node = bin_node.next_sibling("Binary")) {
       std::string id = bin_node.attribute("ID").value();
 
-      protect<std::string> val;
+      protect<std::string> data;
 
       if (bin_node.attribute("Protected").as_bool()) {
-        val = protect<std::string>(obfuscator.Process(
+        data = protect<std::string>(obfuscator.Process(
             base64_decode(bin_node.text().as_string())), true);
       } else {
         if (bin_node.attribute("Compressed").as_bool()) {
@@ -253,18 +253,20 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
           gzip_istreambuf gzip_streambuf(raw_stream);
           std::istream gzip_stream(&gzip_streambuf);
 
-          val = protect<std::string>(
+          data = protect<std::string>(
               consume<std::string>(gzip_stream),
               bin_node.attribute("ProtectedInMemory").as_bool());
         } else {
-          val = protect<std::string>(
+          data = protect<std::string>(
               base64_decode(bin_node.text().as_string()),
               bin_node.attribute("ProtectedInMemory").as_bool());
         }
       }
 
-      // FIXME: The binary data should be bound to the meta object.
-      binary_pool_.insert(std::make_pair(id, val));
+      std::shared_ptr<Binary> binary = std::make_shared<Binary>(data);
+      meta->AddBinary(binary);
+
+      binary_pool_.insert(std::make_pair(id, binary));
     }
   }
 
@@ -375,7 +377,7 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
   for (pugi::xml_node bin_node = entry_node.child("Binary"); bin_node;
       bin_node = bin_node.next_sibling("Binary")) {
     std::string key = bin_node.child_value("Key");
-    std::vector<char> val;
+    std::shared_ptr<Binary> binary;
 
     pugi::xml_node val_node = bin_node.child("Value");
     if (val_node) {
@@ -387,9 +389,7 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
               "entry refers to non-existing binary data.");
         }
 
-        std::copy(it->second->begin(),
-                  it->second->end(),
-                  std::back_inserter(val));
+        binary = it->second;
       } else {
         protect<std::string> prot_val;
 
@@ -413,14 +413,14 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
           }
         }
 
-        std::copy(prot_val->begin(), prot_val->end(), std::back_inserter(val));
+        binary = std::make_shared<Binary>(prot_val);
       }
     }
 
     std::shared_ptr<Entry::Attachment> attachment =
         std::make_shared<Entry::Attachment>();
     attachment->set_name(key);
-    attachment->set_data(std::move(val));
+    attachment->set_binary(binary);
 
     entry->AddAttachment(attachment);
   }

@@ -22,6 +22,7 @@
 #include <cassert>
 #include <ctime>
 #include <istream>
+#include <memory>
 #include <string>
 
 namespace keepass {
@@ -141,6 +142,14 @@ inline bool indirect_equal(const std::vector<T>& v0,
       [](const T& v0, const T& v1) {
         return *v0 == *v1;
       });
+}
+
+template <typename T>
+inline bool indirect_equal(std::shared_ptr<T> p0, std::shared_ptr<T> p1) {
+  if (p0 != nullptr && p1 != nullptr)
+    return *p0 == *p1;
+
+  return p0 == nullptr && p1 == nullptr;
 }
 
 std::string time_to_str(const std::time_t &time);

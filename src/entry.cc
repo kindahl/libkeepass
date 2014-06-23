@@ -68,9 +68,9 @@ std::string Entry::Attachment::ToJson() const {
   json << "{";
   if (!name_.empty())
     json << "\"name\":\"" << name_ << "\"";
-  if (!data_.empty()) {
+  if (!binary_->Empty()) {
     json << (name_.empty() ? "" : ",") << "\"data\":\"" <<
-        std::string(data_.begin(), data_.end()) << "\"";
+        *binary_->data() << "\"";
   }
   json << "}";
 

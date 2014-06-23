@@ -22,7 +22,9 @@
 #include <string>
 #include <vector>
 
+#include "binary.hh"
 #include "security.hh"
+#include "util.hh"
 
 namespace keepass {
 
@@ -33,19 +35,19 @@ class Entry final {
   class Attachment final {
    private:
     std::string name_;
-    std::vector<char> data_;
+    std::shared_ptr<Binary> binary_;
 
    public:
     const std::string& name() const { return name_; }
     void set_name(const std::string& name) { name_ = name; }
 
-    const std::vector<char>& data() const { return data_; }
-    void set_data(const std::vector<char>&& data) { data_ = std::move(data); }
+    std::shared_ptr<Binary> binary() const { return binary_; }
+    void set_binary(std::shared_ptr<Binary> binary) { binary_ = binary; }
 
     std::string ToJson() const;
 
     bool operator==(const Attachment& other) const {
-      return name_ == other.name_ && data_ == other.data_;
+      return name_ == other.name_ && indirect_equal(binary_, other.binary_);
     }
     bool operator!=(const Attachment& other) const {
       return !(*this == other);

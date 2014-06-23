@@ -33,6 +33,7 @@ namespace pugi {
 
 namespace keepass {
 
+class Binary;
 class Entry;
 class Group;
 class Icon;
@@ -45,8 +46,7 @@ class RandomObfuscator;
  */
 class KdbxFile final {
  private:
-  typedef protect<std::string> BinaryData;
-  typedef std::unordered_map<std::string, BinaryData> BinaryPool;
+  typedef std::unordered_map<std::string, std::shared_ptr<Binary>> BinaryPool;
 
   typedef std::unordered_map<std::string, std::weak_ptr<Icon>> IconPool;
 

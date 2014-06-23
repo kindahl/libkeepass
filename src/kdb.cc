@@ -368,7 +368,12 @@ std::shared_ptr<Entry> KdbFile::ReadEntry(std::istream& src,
         if (field_size > 0) {
           if (!attachment)
             attachment = std::make_shared<Entry::Attachment>();
-          attachment->set_data(consume<std::vector<char>>(field));
+
+          std::vector<char> data = consume<std::vector<char>>(field);
+
+          std::shared_ptr<Binary> binary = std::make_shared<Binary>(
+              protect<std::string>(std::string(data.begin(), data.end()), false));
+          attachment->set_binary(binary);
         }
         break;
       case KdbEntryFieldType::kEnd:
@@ -455,11 +460,17 @@ void KdbFile::WriteEntry(std::ostream& dst,
       conserve<std::string>(dst, attachment->name());
     }
 
-    if (!attachment->data().empty()) {
+    if (!attachment->binary()->Empty()) {
       conserve<uint16_t>(dst, static_cast<uint16_t>(
           KdbEntryFieldType::kAttachmentData));
-      conserve<uint32_t>(dst, attachment->data().size());
-      conserve<std::vector<char>>(dst, attachment->data());
+      conserve<uint32_t>(dst, attachment->binary()->Size());
+
+      std::vector<char> data;
+      data.resize(attachment->binary()->Size());
+      std::copy(attachment->binary()->data()->begin(),
+                attachment->binary()->data()->end(),
+                data.begin());
+      conserve<std::vector<char>>(dst, data);
     }
   }
 
