@@ -33,7 +33,7 @@ $(LIBKEEPASS): $(LIBKEEPASS_OBJ)
 SAMPLE_SRC := $(wildcard sample/*.cc)
 SAMPLE_OBJ := $(addprefix $(OBJ_DIR)/sample/,$(notdir $(SAMPLE_SRC:.cc=.o)))
 SAMPLE_CCFLAGS := $(CCFLAGS) -Isrc/ -std=c++11 -Wall -Wextra -Werror
-SAMPLE_LDFLAGS := -lcrypto
+SAMPLE_LDFLAGS := -lcrypto -lz
 
 $(OBJ_DIR)/sample/%.o: sample/%.cc
 	mkdir -p $(@D)
@@ -49,7 +49,7 @@ $(SAMPLE): $(SAMPLE_OBJ) $(LIBKEEPASS)
 TEST_SRC := $(wildcard test/*.cc)
 TEST_OBJ := $(addprefix $(OBJ_DIR)/test/,$(notdir $(TEST_SRC:.cc=.o)))
 TEST_CCFLAGS := $(CCFLAGS) -Isrc/ -std=c++11 -Wall -Wextra -Werror
-TEST_LDFLAGS := -lcrypto -lgtest -lgtest_main
+TEST_LDFLAGS := -lcrypto -lz -lgtest -lgtest_main
 
 $(OBJ_DIR)/test/%.o: test/%.cc
 	mkdir -p $(@D)

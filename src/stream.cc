@@ -18,7 +18,11 @@
 
 #include "stream.hh"
 
+#include <cassert>
+
 #include <openssl/sha.h>
+
+#include "format.hh"
 
 namespace keepass {
 
@@ -113,6 +117,59 @@ int hashed_ostreambuf::sync() {
 
   // Write the trailing empty block.
   return FlushBlock() ? 0 : -1;
+}
+
+gzip_istreambuf::gzip_istreambuf(std::istream& src) :
+    src_(src) {
+  z_stream_.zalloc = Z_NULL;
+  z_stream_.zfree = Z_NULL;
+  z_stream_.opaque = Z_NULL;
+  z_stream_.avail_in = 0;
+  z_stream_.next_in = reinterpret_cast<uint8_t*>(input_.data());
+  z_stream_.avail_out = output_.size();
+  z_stream_.next_out = reinterpret_cast<uint8_t*>(output_.data());
+
+  if (inflateInit2(&z_stream_, 16 + MAX_WBITS) != Z_OK)
+    throw std::runtime_error("failed to initialize gzip decompressor.");
+}
+
+gzip_istreambuf::~gzip_istreambuf() {
+  inflateEnd(&z_stream_);
+}
+
+int gzip_istreambuf::underflow() {
+  if (gptr() == egptr()) {
+    // Check if we need to feed the z-stream more input data.
+    if (z_stream_.avail_in == 0) {
+      if (!src_.good())
+        return std::char_traits<char>::eof();
+
+      src_.read(input_.data(), input_.size());
+
+      z_stream_.avail_in = src_.gcount();
+      z_stream_.next_in = reinterpret_cast<uint8_t*>(input_.data());
+
+      if (z_stream_.avail_in < 1)
+        return std::char_traits<char>::eof();
+    }
+
+    z_stream_.avail_out = output_.size();
+    z_stream_.next_out = reinterpret_cast<uint8_t*>(output_.data());
+
+    int res = inflate(&z_stream_, Z_NO_FLUSH);
+    assert(res != Z_STREAM_ERROR);
+    if (res < 0) {
+      throw std::runtime_error(
+          Format() << "gzip stream error (" << res << ")");
+    }
+
+    std::size_t output_bytes = output_.size() - z_stream_.avail_out;
+    setg(output_.data(), output_.data(), output_.data() + output_bytes);
+  }
+
+  return gptr() == egptr() ?
+      std::char_traits<char>::eof() :
+      std::char_traits<char>::to_int_type(*gptr());
 }
 
 }   // namespace keepass

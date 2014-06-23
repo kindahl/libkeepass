@@ -248,9 +248,13 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
             base64_decode(bin_node.text().as_string())), true);
       } else {
         if (bin_node.attribute("Compressed").as_bool()) {
-          // FIXME: Add support for compressed binary data.
+          std::stringstream raw_stream(
+              base64_decode(bin_node.text().as_string()));
+          gzip_istreambuf gzip_streambuf(raw_stream);
+          std::istream gzip_stream(&gzip_streambuf);
+
           val = protect<std::string>(
-              base64_decode(bin_node.text().as_string()),
+              consume<std::string>(gzip_stream),
               bin_node.attribute("ProtectedInMemory").as_bool());
         } else {
           val = protect<std::string>(
@@ -395,9 +399,13 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
               base64_decode(bin_node.text().as_string())), true);
         } else {
           if (bin_node.attribute("Compressed").as_bool()) {
-            // FIXME: Add support for compressed binary data.
+            std::stringstream raw_stream(
+                base64_decode(bin_node.text().as_string()));
+            gzip_istreambuf gzip_streambuf(raw_stream);
+            std::istream gzip_stream(&gzip_streambuf);
+
             prot_val = protect<std::string>(
-                base64_decode(bin_node.text().as_string()),
+                consume<std::string>(gzip_stream),
                 bin_node.attribute("ProtectedInMemory").as_bool());
           } else {
             prot_val = protect<std::string>(
@@ -642,9 +650,6 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
           throw std::runtime_error("unsupported compression method in header.");
         db->set_compressed(comp_flags ==
             static_cast<uint32_t>(kKdbxCompressionFlags::kGzip));
-        // FIXME: Add support for GZipped databases.
-        if (db->compressed())
-          throw std::runtime_error("compressed databases are not supported.");
         break;
       }
       case KdbxHeaderField::kMasterSeed:
@@ -762,9 +767,16 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
 
   // Parse XML content.
   hashed_istreambuf hashed_streambuf(content);
-  std::istream xml_stream(&hashed_streambuf);
+  std::istream hashed_stream(&hashed_streambuf);
 
-  ParseXml(xml_stream, obfuscator, *db.get());
+  if (db->compressed()) {
+    gzip_istreambuf gzip_streambuf(hashed_stream);
+    std::istream gzip_stream(&gzip_streambuf);
+
+    ParseXml(gzip_stream, obfuscator, *db.get());
+  } else {
+    ParseXml(hashed_stream, obfuscator, *db.get());
+  }
 
   // Validate header hash.
   if (header_hash_ != header_hash)

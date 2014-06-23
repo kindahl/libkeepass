@@ -22,6 +22,8 @@
 #include <istream>
 #include <ostream>
 
+#include <zlib.h>
+
 namespace keepass {
 
 class hashed_basic_streambuf {
@@ -73,6 +75,26 @@ public:
 
   virtual int overflow(int c) override;
   virtual int sync() override;
+};
+
+class gzip_istreambuf final :
+    public std::basic_streambuf<char, std::char_traits<char>> {
+ private:
+  static const std::size_t kBufferSize = 16384;
+
+  std::istream& src_;
+  z_stream z_stream_;
+
+  /** Input buffer for feeding the decompressor. */
+  std::array<char, kBufferSize> input_ = { { 0 } };
+  /** Output buffer for the decompressor to write to. */
+  std::array<char, kBufferSize> output_ = { { 0 } };
+
+public:
+  gzip_istreambuf(std::istream& src);
+  ~gzip_istreambuf();
+
+  virtual int underflow() override;
 };
 
 }   // namespace keepass

@@ -52,6 +52,14 @@ bool FilesEqual(const std::string& path0, const std::string& path1) {
   return data0 == data1;
 }
 
+std::string GetFileAsText(const std::string& path) {
+  std::ifstream file(path, std::ios::in | std::ios::binary);
+  EXPECT_EQ(file.is_open(), true);
+
+  return std::string(std::istreambuf_iterator<char>(file),
+                     std::istreambuf_iterator<char>());
+}
+
 }   // namespace
 
 TEST(StreamTest, ReadEmptyHashedStream) {
@@ -233,4 +241,63 @@ TEST(StreamTest, Write260BytesHashedStream) {
 
   EXPECT_EQ(FilesEqual(tst_path, dst_path), true);
   std::remove(dst_path.c_str());
+}
+
+TEST(StreamTest, ReadEmptyGzipStream) {
+  std::ifstream file(GetTestPath("gzip_stream-0.gzip"),
+                     std::ios::in | std::ios::binary);
+  EXPECT_EQ(file.is_open(), true);
+
+  gzip_istreambuf streambuf(file);
+  std::istream stream(&streambuf);
+
+  std::string str = std::string(std::istreambuf_iterator<char>(stream),
+                                std::istreambuf_iterator<char>());
+  EXPECT_EQ(stream.good(), true);
+  EXPECT_EQ(str.size(), 0);
+}
+
+TEST(StreamTest, Read127BytesGzipStream) {
+  std::ifstream file(GetTestPath("gzip_stream-127.gzip"),
+                     std::ios::in | std::ios::binary);
+  EXPECT_EQ(file.is_open(), true);
+
+  gzip_istreambuf streambuf(file);
+  std::istream stream(&streambuf);
+
+  std::string str = std::string(std::istreambuf_iterator<char>(stream),
+                                std::istreambuf_iterator<char>());
+  EXPECT_EQ(stream.good(), true);
+  EXPECT_EQ(str.size(), 127);
+  EXPECT_EQ(str, GetFileAsText(GetTestPath("gzip_stream-127")));
+}
+
+TEST(StreamTest, Read16384BytesGzipStream) {
+  std::ifstream file(GetTestPath("gzip_stream-16384.gzip"),
+                     std::ios::in | std::ios::binary);
+  EXPECT_EQ(file.is_open(), true);
+
+  gzip_istreambuf streambuf(file);
+  std::istream stream(&streambuf);
+
+  std::string str = std::string(std::istreambuf_iterator<char>(stream),
+                                std::istreambuf_iterator<char>());
+  EXPECT_EQ(stream.good(), true);
+  EXPECT_EQ(str.size(), 16384);
+  EXPECT_EQ(str, GetFileAsText(GetTestPath("gzip_stream-16384")));
+}
+
+TEST(StreamTest, Read16511BytesGzipStream) {
+  std::ifstream file(GetTestPath("gzip_stream-16511.gzip"),
+                     std::ios::in | std::ios::binary);
+  EXPECT_EQ(file.is_open(), true);
+
+  gzip_istreambuf streambuf(file);
+  std::istream stream(&streambuf);
+
+  std::string str = std::string(std::istreambuf_iterator<char>(stream),
+                                std::istreambuf_iterator<char>());
+  EXPECT_EQ(stream.good(), true);
+  EXPECT_EQ(str.size(), 16511);
+  EXPECT_EQ(str, GetFileAsText(GetTestPath("gzip_stream-16511")));
 }

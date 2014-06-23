@@ -345,6 +345,20 @@ TEST(KdbxTest, ImportComplex1) {
   EXPECT_EQ(root->ToJson(), GetTestJson("complex-1-pw-aes.json"));
 }
 
+TEST(KdbxTest, ImportComplex1Compressed) {
+  Key key("password");
+
+  KdbxFile file;
+  std::unique_ptr<Database> db;
+  EXPECT_NO_THROW({
+    db = file.Import(GetTestPath("complex-1-pw-aes-gzip.kdbx"), key);
+  });
+
+  std::shared_ptr<Group> root = db->root().lock();
+  EXPECT_NE(root, nullptr);
+  EXPECT_EQ(root->ToJson(), GetTestJson("complex-1-pw-aes-gzip.json"));
+}
+
 TEST(KdbxTest, ImportComplex1KeyFile) {
   Key key;
   key.SetKeyFile(GetTestPath("complex-1-key-aes.key"));
@@ -358,6 +372,21 @@ TEST(KdbxTest, ImportComplex1KeyFile) {
   std::shared_ptr<Group> root = db->root().lock();
   EXPECT_NE(root, nullptr);
   EXPECT_EQ(root->ToJson(), GetTestJson("complex-1-key-aes.json"));
+}
+
+TEST(KdbxTest, ImportComplex1KeyFileCompressed) {
+  Key key;
+  key.SetKeyFile(GetTestPath("complex-1-key-aes-gzip.key"));
+
+  KdbxFile file;
+  std::unique_ptr<Database> db;
+  EXPECT_NO_THROW({
+    db = file.Import(GetTestPath("complex-1-key-aes-gzip.kdbx"), key);
+  });
+
+  std::shared_ptr<Group> root = db->root().lock();
+  EXPECT_NE(root, nullptr);
+  EXPECT_EQ(root->ToJson(), GetTestJson("complex-1-key-aes-gzip.json"));
 }
 
 TEST(KdbxTest, ImportComplex1KeyFileAndPassword) {
