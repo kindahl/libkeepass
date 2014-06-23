@@ -356,17 +356,16 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
     protect<std::string> val = ParseProtectedString(
         str_node, "Value", obfuscator);
 
-    // FIXME: Does not preserve protected state.
     if (key == "Title") {
-      entry->set_title(*val);
+      entry->set_title(val);
     } else if (key == "URL") {
-      entry->set_url(*val);
+      entry->set_url(val);
     } else if (key == "UserName") {
-      entry->set_username(*val);
+      entry->set_username(val);
     } else if (key == "Password") {
-      entry->set_password(*val);
+      entry->set_password(val);
     } else if (key == "Notes") {
-      entry->set_notes(*val);
+      entry->set_notes(val);
     } else {
       entry->AddCustomField(key, val);
     }

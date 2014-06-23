@@ -144,12 +144,12 @@ class Entry final {
   std::array<uint8_t, 16> uuid_;
   uint32_t icon_ = 0;
   std::weak_ptr<Icon> custom_icon_;
-  std::string title_;
-  std::string url_;
+  protect<std::string> title_;
+  protect<std::string> url_;
   std::string override_url_;
-  std::string username_;
-  std::string password_;
-  std::string notes_;
+  protect<std::string> username_;
+  protect<std::string> password_;
+  protect<std::string> notes_;
   std::string tags_;
   std::time_t creation_time_ = 0;
   std::time_t modification_time_ = 0;
@@ -175,23 +175,27 @@ class Entry final {
   std::weak_ptr<Icon> custom_icon() const { return custom_icon_; }
   void set_custom_icon(std::weak_ptr<Icon> icon) { custom_icon_ = icon; }
 
-  const std::string& title() const { return title_; }
-  void set_title(const std::string& title) { title_ = title; }
+  const protect<std::string>& title() const { return title_; }
+  void set_title(const protect<std::string>& title) { title_ = title; }
 
-  const std::string& url() const { return url_; }
-  void set_url(const std::string& url) { url_ = url; }
+  const protect<std::string>& url() const { return url_; }
+  void set_url(const protect<std::string>& url) { url_ = url; }
 
   const std::string& override_url() const { return override_url_; }
   void set_override_url(const std::string& url) { override_url_ = url; }
 
-  const std::string& username() const { return username_; }
-  void set_username(const std::string& username) { username_ = username; }
+  const protect<std::string>& username() const { return username_; }
+  void set_username(const protect<std::string>& username) {
+    username_ = username;
+  }
 
-  const std::string& password() const { return password_; }
-  void set_password(const std::string& password) { password_ = password; }
+  const protect<std::string>& password() const { return password_; }
+  void set_password(const protect<std::string>& password) {
+    password_ = password;
+  }
 
-  const std::string& notes() const { return notes_; }
-  void set_notes(const std::string& notes) { notes_ = notes; }
+  const protect<std::string>& notes() const { return notes_; }
+  void set_notes(const protect<std::string>& notes) { notes_ = notes; }
 
   const std::string& tags() const { return tags_; }
   void set_tags(const std::string& tags) { tags_ = tags; }

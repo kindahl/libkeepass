@@ -58,8 +58,8 @@ bool Entry::IsMetaEntry() const {
     }
   }
 
-  return title_ == "Meta-Info" && url_ == "$" && username_ == "SYSTEM" &&
-      !notes_.empty() && has_binstream_attachment;
+  return *title_ == "Meta-Info" && *url_ == "$" && *username_ == "SYSTEM" &&
+      !notes_->empty() && has_binstream_attachment;
 }
 
 std::string Entry::Attachment::ToJson() const {
@@ -82,16 +82,16 @@ std::string Entry::ToJson() const {
 
   json << "{";
   json << "\"icon\":" << icon_;
-  if (!title_.empty())
-    json << ",\"title\":\"" << title_ << "\"";
-  if (!url_.empty())
-    json << ",\"url\":\"" << url_ << "\"";
-  if (!username_.empty())
-    json << ",\"username\":\"" << username_ << "\"";
-  if (!password_.empty())
-    json << ",\"password\":\"" << password_ << "\"";
-  if (!notes_.empty())
-    json << ",\"notes\":\"" << notes_ << "\"";
+  if (!title_->empty())
+    json << ",\"title\":\"" << *title_ << "\"";
+  if (!url_->empty())
+    json << ",\"url\":\"" << *url_ << "\"";
+  if (!username_->empty())
+    json << ",\"username\":\"" << *username_ << "\"";
+  if (!password_->empty())
+    json << ",\"password\":\"" << *password_ << "\"";
+  if (!notes_->empty())
+    json << ",\"notes\":\"" << *notes_ << "\"";
   if (creation_time_ != 0)
     json << ",\"creation_time\":\"" << time_to_str(creation_time_) << "\"";
   if (modification_time_ != 0) {

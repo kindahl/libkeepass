@@ -321,19 +321,24 @@ std::shared_ptr<Entry> KdbFile::ReadEntry(std::istream& src,
         entry->set_icon(consume<uint32_t>(field));
         break;
       case KdbEntryFieldType::kTitle:
-        entry->set_title(consume<std::string>(field));
+        entry->set_title(protect<std::string>(
+            consume<std::string>(field), false));
         break;
       case KdbEntryFieldType::kUrl:
-        entry->set_url(consume<std::string>(field));
+        entry->set_url(protect<std::string>(
+            consume<std::string>(field), false));
         break;
       case KdbEntryFieldType::kUsername:
-        entry->set_username(consume<std::string>(field));
+        entry->set_username(protect<std::string>(
+            consume<std::string>(field), false));
         break;
       case KdbEntryFieldType::kPassword:
-        entry->set_password(consume<std::string>(field));
+        entry->set_password(protect<std::string>(
+            consume<std::string>(field), false));
         break;
       case KdbEntryFieldType::kNotes:
-        entry->set_notes(consume<std::string>(field));
+        entry->set_notes(protect<std::string>(
+            consume<std::string>(field), false));
         break;
       case KdbEntryFieldType::kCreationTime:
         entry->set_creation_time(consume<KdbTime>(field).ToTime());
@@ -397,23 +402,23 @@ void KdbFile::WriteEntry(std::ostream& dst,
   conserve<uint32_t>(dst, entry->icon());
 
   conserve<uint16_t>(dst, static_cast<uint16_t>(KdbEntryFieldType::kTitle));
-  conserve<uint32_t>(dst, entry->title().size() + 1);
+  conserve<uint32_t>(dst, entry->title()->size() + 1);
   conserve<std::string>(dst, entry->title());
 
   conserve<uint16_t>(dst, static_cast<uint16_t>(KdbEntryFieldType::kUrl));
-  conserve<uint32_t>(dst, entry->url().size() + 1);
+  conserve<uint32_t>(dst, entry->url()->size() + 1);
   conserve<std::string>(dst, entry->url());
 
   conserve<uint16_t>(dst, static_cast<uint16_t>(KdbEntryFieldType::kUsername));
-  conserve<uint32_t>(dst, entry->username().size() + 1);
+  conserve<uint32_t>(dst, entry->username()->size() + 1);
   conserve<std::string>(dst, entry->username());
 
   conserve<uint16_t>(dst, static_cast<uint16_t>(KdbEntryFieldType::kPassword));
-  conserve<uint32_t>(dst, entry->password().size() + 1);
+  conserve<uint32_t>(dst, entry->password()->size() + 1);
   conserve<std::string>(dst, entry->password());
 
   conserve<uint16_t>(dst, static_cast<uint16_t>(KdbEntryFieldType::kNotes));
-  conserve<uint32_t>(dst, entry->notes().size() + 1);
+  conserve<uint32_t>(dst, entry->notes()->size() + 1);
   conserve<std::string>(dst, entry->notes());
 
   KdbTime creation_time(entry->creation_time());
