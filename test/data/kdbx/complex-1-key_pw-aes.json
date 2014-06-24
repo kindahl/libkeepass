@@ -5,36 +5,42 @@
   "modification_time": "2014-06-05 21:16:06",
   "access_time": "2014-06-05 21:16:22",
   "expiry_time": "2014-06-05 21:15:20",
+  "move_time": "2014-06-05 21:16:06",
   "groups": [{
     "icon": 37,
     "name": "0",
     "creation_time": "2014-05-19 20:51:15",
     "modification_time": "2014-05-20 18:24:58",
     "access_time": "2014-05-20 18:24:58",
+    "move_time": "2014-06-05 21:15:20",
     "groups": [{
       "icon": 48,
       "name": "1",
       "creation_time": "2014-05-19 20:55:05",
       "modification_time": "2014-05-19 20:55:05",
       "access_time": "2014-05-19 20:55:05",
+      "move_time": "2014-06-05 21:15:20",
       "groups": [{
         "icon": 48,
         "name": "2",
         "creation_time": "2014-05-19 20:55:10",
         "modification_time": "2014-05-19 20:55:10",
-        "access_time": "2014-05-19 20:55:10"
+        "access_time": "2014-05-19 20:55:10",
+        "move_time": "2014-06-05 21:15:20"
       }, {
         "icon": 40,
         "name": "3",
         "creation_time": "2014-05-19 20:57:06",
         "modification_time": "2014-05-20 18:24:50",
         "access_time": "2014-05-20 18:24:50",
+        "move_time": "2014-06-05 21:15:20",
         "groups": [{
           "icon": 48,
           "name": "5",
           "creation_time": "2014-05-19 20:57:35",
           "modification_time": "2014-05-19 20:57:35",
           "access_time": "2014-05-19 20:57:35",
+          "move_time": "2014-06-05 21:15:20",
           "entries": [{
             "icon": 0,
             "creation_time": "2014-05-20 18:20:58",
@@ -65,6 +71,7 @@
         "creation_time": "2014-05-19 20:57:22",
         "modification_time": "2014-05-19 20:57:22",
         "access_time": "2014-05-19 20:57:22",
+        "move_time": "2014-06-05 21:15:20",
         "entries": [{
           "icon": 8,
           "title": "fringilla purus mauris a nunc.",
@@ -135,6 +142,7 @@
     "creation_time": "2014-05-20 18:21:40",
     "modification_time": "2014-05-20 18:21:40",
     "access_time": "2014-05-20 18:21:40",
+    "move_time": "2014-06-05 21:15:20",
     "entries": [{
       "icon": 0,
       "password": "wer8RqLGMgNSKJUDZEpv",

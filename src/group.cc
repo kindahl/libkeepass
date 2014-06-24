@@ -52,8 +52,12 @@ std::string Group::ToJson() const {
 
   json << "{";
   json << "\"icon\":" << icon_;
+  if (custom_icon_.lock())
+    json << ",\"custom_icon\":\"" << true << "\"";
   if (!name_.empty())
     json << ",\"name\":\"" << name_ << "\"";
+  if (!notes_.empty())
+    json << ",\"notes\":\"" << notes_ << "\"";
   if (creation_time_ != 0)
     json << ",\"creation_time\":\"" << time_to_str(creation_time_) << "\"";
   if (modification_time_ != 0) {
@@ -64,6 +68,8 @@ std::string Group::ToJson() const {
     json << ",\"access_time\":\"" << time_to_str(access_time_) << "\"";
   if (expiry_time_ != 0)
     json << ",\"expiry_time\":\"" << time_to_str(expiry_time_) << "\"";
+  if (move_time_ != 0)
+    json << ",\"move_time\":\"" << time_to_str(move_time_) << "\"";
   if (flags_ != 0)
     json << ",\"flags\":" << flags_;
   if (!groups_.empty()) {

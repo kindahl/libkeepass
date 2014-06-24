@@ -5,24 +5,28 @@
   "modification_time": "2014-06-05 21:24:09",
   "access_time": "2014-06-05 21:24:19",
   "expiry_time": "2014-06-05 21:17:24",
+  "move_time": "2014-06-05 21:24:09",
   "groups": [{
     "icon": 48,
     "name": "0",
     "creation_time": "2014-05-19 20:51:15",
     "modification_time": "2014-05-19 20:55:00",
     "access_time": "2014-05-19 20:55:00",
+    "move_time": "2014-06-05 21:17:24",
     "groups": [{
       "icon": 48,
       "name": "1",
       "creation_time": "2014-05-19 20:55:05",
       "modification_time": "2014-05-19 20:55:05",
       "access_time": "2014-05-19 20:55:05",
+      "move_time": "2014-06-05 21:17:24",
       "groups": [{
         "icon": 48,
         "name": "2",
         "creation_time": "2014-05-19 20:55:10",
         "modification_time": "2014-05-19 20:55:10",
-        "access_time": "2014-05-19 20:55:10"
+        "access_time": "2014-05-19 20:55:10",
+        "move_time": "2014-06-05 21:17:24"
       }],
       "entries": [{
         "icon": 0,
@@ -41,7 +45,8 @@
       "name": "3",
       "creation_time": "2014-05-19 20:55:43",
       "modification_time": "2014-05-19 20:56:15",
-      "access_time": "2014-05-19 20:56:15"
+      "access_time": "2014-05-19 20:56:15",
+      "move_time": "2014-06-05 21:17:24"
     }]
   }]
 }
