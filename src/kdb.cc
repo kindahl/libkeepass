@@ -30,6 +30,7 @@
 #include "entry.hh"
 #include "format.hh"
 #include "group.hh"
+#include "io.hh"
 #include "key.hh"
 #include "util.hh"
 
@@ -637,17 +638,6 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
 
   db->set_root(group_root);
   return std::move(db);
-}
-
-template <typename T, const std::vector<std::shared_ptr<T>>& (T::*F)() const>
-void dfs(const std::shared_ptr<T>& current,
-         std::function<void(const std::shared_ptr<T>&, std::size_t)> callback,
-         std::size_t level = 0) {
-  for (auto child : ((current.get())->*F)()) {
-    // Note that we're not invoking the callback for the root.
-    callback(child, level);
-    dfs<T, F>(child, callback, level + 1);
-  }
 }
 
 void KdbFile::Export(const std::string& path, const Database& db,

@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "stream.hh"
 #include "util.hh"
 
 namespace {

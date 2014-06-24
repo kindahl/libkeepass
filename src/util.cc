@@ -18,69 +18,11 @@
 
 #include "util.hh"
 
+#include <cassert>
+
 namespace keepass {
 
-template<>
-std::string consume<std::string>(std::istream& src) {
-  // Don't read the stream into a string directly. We want to make sure that we
-  // get a clean string.
-  std::vector<char> str_data;
-  std::copy(std::istreambuf_iterator<char>(src), 
-            std::istreambuf_iterator<char>(), 
-            std::back_inserter(str_data));
-
-  if (str_data.size() == 0)
-    throw std::runtime_error("cannot consume string of zero length.");
-
-  std::string str;
-  str.reserve(str_data.size());
-  for (char c : str_data) {
-    if (c == '\0')
-      break;
-    str.push_back(c);
-  }
-
-  return str;
-}
-
-template <>
-std::vector<char> consume<std::vector<char>>(std::istream& src) {
-  std::vector<char> data;
-  std::copy(std::istreambuf_iterator<char>(src),
-            std::istreambuf_iterator<char>(),
-            std::back_inserter(data));
-
-  return data;
-}
-
-template <>
-std::vector<uint8_t> consume<std::vector<uint8_t>>(std::istream& src) {
-  // FIXME: This function needs to be made more efficient.
-  std::vector<char> data;
-  std::copy(std::istreambuf_iterator<char>(src),
-            std::istreambuf_iterator<char>(),
-            std::back_inserter(data));
-
-  std::vector<uint8_t> unsigned_data;
-  unsigned_data.resize(data.size());
-  for (std::size_t i = 0; i < data.size(); ++i)
-    unsigned_data[i] = data[i];
-
-  return unsigned_data;
-}
-
-template <>
-void conserve<std::string>(std::ostream& dst, const std::string& val) {
-  dst.write(val.c_str(), val.size() + 1);   // FIXME: Is this safe?
-}
-
-template <>
-void conserve<std::vector<char>>(std::ostream& dst,
-                                 const std::vector<char>& val) {
-  dst.write(val.data(), val.size());
-}
-
-std::string time_to_str(const std::time_t &time) {
+std::string time_to_str(const std::time_t& time) {
   const std::tm* local_time = std::localtime(&time);
   assert(local_time != nullptr);
 

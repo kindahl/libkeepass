@@ -17,114 +17,24 @@
  */
 
 #pragma once
-#include <array>
 #include <algorithm>
-#include <cassert>
 #include <ctime>
-#include <istream>
 #include <memory>
 #include <string>
 
 namespace keepass {
 
+/**
+ * Clamps a value into a specific range.
+ * @param [in] min Minimum value.
+ * @param [in] max Maximum value.
+ * @param [in] val Value to clamp.
+ * @return Clamped @a val.
+ */
 template <typename T>
 inline T clamp(T min, T max, T val) {
   return std::max<T>(min, std::min<T>(max, val));
 }
-
-template <typename T>
-inline T consume(std::istream& src) {
-  T val;
-  src.read(reinterpret_cast<char *>(&val), sizeof(T));
-  if (!src.good())
-    throw std::runtime_error("trying to consume past data limit.");
-
-  return val;
-}
-
-template <>
-std::string consume<std::string>(std::istream& src);
-
-template <>
-std::vector<char> consume<std::vector<char>>(std::istream& src);
-
-template <>
-std::vector<uint8_t> consume<std::vector<uint8_t>>(std::istream& src);
-
-// FIXME: Move to separate io.cc io.hh?
-template<typename T>
-void conserve(std::ostream& dst, const T& val) {
-  dst.write(reinterpret_cast<const char*>(&val), sizeof(T));
-}
-
-template <>
-void conserve<std::string>(std::ostream& dst, const std::string& val);
-
-template <>
-void conserve<std::vector<char>>(std::ostream& dst,
-                                 const std::vector<char>& val);
-
-template <std::size_t N>
-class array_iostreambuf :
-    public std::basic_streambuf<char, std::char_traits<char>> {
- private:
-  std::array<uint8_t, N>& buffer_;
-
- protected:
-  virtual std::streampos seekoff(std::streamoff off,
-                                 std::ios_base::seekdir way,
-                                 std::ios_base::openmode which) override {
-    if (which == 0)
-      return std::streampos(std::streamoff(-1));
-
-    off = clamp<std::streamoff>(0, buffer_.size(), off);
-
-    std::streamoff lin_off = 0;
-    switch (way) {
-      case std::ios_base::beg:
-        lin_off = clamp<std::streamoff>(0, buffer_.size(), off);
-        break;
-      case std::ios_base::cur:
-        lin_off = clamp<std::streamoff>(0, buffer_.size(), (gptr() - eback()) + off);
-        break;
-      case std::ios_base::end:
-        lin_off = clamp<std::streamoff>(0, buffer_.size(), buffer_.size() - off);
-        break;
-      default:
-        assert(false);
-        break;
-    };
-
-    if (which & std::ios_base::in) {
-      char* buffer_ptr = reinterpret_cast<char*>(buffer_.data());
-      setg(buffer_ptr, buffer_ptr + lin_off, buffer_ptr + buffer_.size());
-    }
-
-    return lin_off;
-  }
-
-  virtual std::streampos seekpos(std::streampos sp,
-                                 std::ios_base::openmode which) override {
-    if (which == 0 || sp < 0 ||
-        sp >= static_cast<std::streampos>(buffer_.size())) {
-      return std::streampos(std::streamoff(-1));
-    }
-
-    if (which & std::ios_base::in) {
-      char* buffer_ptr = reinterpret_cast<char*>(buffer_.data());
-      setg(buffer_ptr, buffer_ptr + sp, buffer_ptr + buffer_.size());
-    }
-
-    return sp;
-  }
-
- public:
-  array_iostreambuf(std::array<uint8_t, N>& buffer) : buffer_(buffer) {
-    char* buffer_ptr = reinterpret_cast<char*>(buffer.data());
-    setg(buffer_ptr, buffer_ptr, buffer_ptr + buffer.size());
-    setp(buffer_ptr, buffer_ptr + buffer.size());
-  }
-};
 
 /**
  * Compares the elements in two vectors for equality. This function is designed
@@ -144,6 +54,14 @@ inline bool indirect_equal(const std::vector<T>& v0,
       });
 }
 
+/**
+ * Compares the elements of two pointers for equality. This function will
+ * dereference each pointer as necessary in order to test equality by value.
+ * @param [in] p0 Pointer to first element.
+ * @param [in] p1 Pointer to second element.
+ * @return true if the elements of both dereferenced pointers are equal or if
+ *         both pointers are null. false is returned otherwise.
+ */
 template <typename T>
 inline bool indirect_equal(std::shared_ptr<T> p0, std::shared_ptr<T> p1) {
   if (p0 != nullptr && p1 != nullptr)
@@ -152,6 +70,32 @@ inline bool indirect_equal(std::shared_ptr<T> p0, std::shared_ptr<T> p1) {
   return p0 == nullptr && p1 == nullptr;
 }
 
-std::string time_to_str(const std::time_t &time);
+/**
+ * Visits graph nodes in depth-first order. The first root node will not be
+ * visited.
+ * @tparam T Node type.
+ * @tparam F Function of @a T that will return a vector with all children.
+ * @param [in] current Start node.
+ * @param [in] callback Function to be called for each visited node.
+ */
+template <typename T, const std::vector<std::shared_ptr<T>>& (T::*F)() const>
+inline void dfs(const std::shared_ptr<T>& current,
+                std::function<void(const std::shared_ptr<T>&,
+                                   std::size_t)> callback,
+                std::size_t level = 0) {
+  for (auto child : ((current.get())->*F)()) {
+    // Note that we're not invoking the callback for the root.
+    callback(child, level);
+    dfs<T, F>(child, callback, level + 1);
+  }
+}
+
+/**
+ * Converts an UTC date and time value into localtime and prints the result to
+ * a string.
+ * @param [in] time Date and time in UTC.
+ * @return @a time as a human readable string.
+ */
+std::string time_to_str(const std::time_t& time);
 
 }   // namespace keepass

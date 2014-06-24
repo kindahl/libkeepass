@@ -31,6 +31,7 @@
 #include "base64.hh"
 #include "cipher.hh"
 #include "icon.hh"
+#include "io.hh"
 #include "key.hh"
 #include "metadata.hh"
 #include "pugixml.hh"
