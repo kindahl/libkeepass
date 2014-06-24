@@ -24,6 +24,10 @@
 
 namespace keepass {
 
+Group::Group() :
+    uuid_(generate_uuid()) {
+}
+
 const std::vector<std::shared_ptr<Group>>& Group::Groups() const {
   return groups_;
 }

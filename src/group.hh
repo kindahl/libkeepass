@@ -52,6 +52,8 @@ class Group final {
   std::vector<std::shared_ptr<Entry>> entries_;
 
  public:
+  Group();
+
   const std::array<uint8_t, 16>& uuid() const { return uuid_; }
   void set_uuid(const std::array<uint8_t, 16>& uuid) { uuid_ = uuid; }
 

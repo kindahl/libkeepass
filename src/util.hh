@@ -18,6 +18,7 @@
 
 #pragma once
 #include <algorithm>
+#include <array>
 #include <ctime>
 #include <memory>
 #include <string>
@@ -97,5 +98,7 @@ inline void dfs(const std::shared_ptr<T>& current,
  * @return @a time as a human readable string.
  */
 std::string time_to_str(const std::time_t& time);
+
+std::array<uint8_t, 16> generate_uuid();
 
 }   // namespace keepass

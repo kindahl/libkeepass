@@ -24,6 +24,10 @@
 
 namespace keepass {
 
+Entry::Entry() :
+    uuid_(generate_uuid()) {
+}
+
 void Entry::AddAttachment(std::shared_ptr<Attachment> attachment) {
   attachments_.push_back(attachment);
 }

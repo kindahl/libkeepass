@@ -16,34 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <set>
+
+#include <gtest/gtest.h>
+
 #include "util.hh"
 
-#include <cassert>
-#include <random>
+using namespace keepass;
 
-namespace keepass {
-
-std::string time_to_str(const std::time_t& time) {
-  const std::tm* local_time = std::localtime(&time);
-  assert(local_time != nullptr);
-
-  char buffer[128];
-  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", local_time);
-  return buffer;
+TEST(UtilTest, GenerateUuid) {
+  // Generate 100 UUIDs and make sure that none of them are the same.
+  std::set<std::array<uint8_t, 16>> generated;
+  for (std::size_t i = 0; i < 100; ++i) {
+    std::array<uint8_t, 16> uuid = generate_uuid();
+    EXPECT_EQ(generated.count(uuid), 0);
+    generated.insert(uuid);
+  }
 }
-
-std::array<uint8_t, 16> generate_uuid() {
-  std::random_device rd;
-  std::mt19937 engine(rd());
-
-  std::uniform_int_distribution<uint8_t> uniform_dist(0, 255);
-
-  // Fill block with random values.
-  std::array<uint8_t, 16> uuid;
-  for (std::size_t i = 0; i < 16; ++i)
-    uuid[i] = uniform_dist(engine);
-
-  return uuid;
-}
-
-}   // namespace keepass

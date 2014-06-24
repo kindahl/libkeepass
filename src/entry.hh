@@ -168,6 +168,8 @@ class Entry final {
   std::vector<Field> custom_fields_;
 
  public:
+  Entry();
+
   const std::array<uint8_t, 16>& uuid() const { return uuid_; }
   void set_uuid(const std::array<uint8_t, 16>& uuid) { uuid_ = uuid; }
 
