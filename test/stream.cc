@@ -301,3 +301,195 @@ TEST(StreamTest, Read16511BytesGzipStream) {
   EXPECT_EQ(str.size(), 16511);
   EXPECT_EQ(str, GetFileAsText(GetTestPath("gzip_stream-16511")));
 }
+
+TEST(StreamTest, WriteEmptyGzipStream) {
+  const std::string src_path = GetTestPath("gzip_stream-0");
+  const std::string arc_path = GetTmpPath("gzip_stream-0.gzip");
+  const std::string tst_path = GetTmpPath("gzip_stream-0");
+
+  // Compress the file.
+  {
+    std::ifstream src(src_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(src.is_open(), true);
+
+    std::ofstream arc(arc_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    gzip_ostreambuf ostreambuf(arc);
+    std::ostream ostream(&ostreambuf);
+    std::copy(std::istreambuf_iterator<char>(src),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(ostream));
+    ostream.flush();
+    EXPECT_EQ(ostream.good(), true);
+    arc.close();
+    src.close();
+  }
+
+  // Decompress the file.
+  {
+    std::ifstream arc(arc_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    std::ofstream tst(tst_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(tst.is_open(), true);
+
+    gzip_istreambuf istreambuf(arc);
+    std::istream istream(&istreambuf);
+    std::copy(std::istreambuf_iterator<char>(istream),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(tst));
+    tst.flush();
+    EXPECT_EQ(istream.good(), true);
+    tst.close();
+    arc.close();
+  }
+
+  EXPECT_EQ(FilesEqual(src_path, tst_path), true);
+  std::remove(arc_path.c_str());
+  std::remove(tst_path.c_str());
+}
+
+TEST(StreamTest, Write127BytesGzipStream) {
+  const std::string src_path = GetTestPath("gzip_stream-127");
+  const std::string arc_path = GetTmpPath("gzip_stream-127.gzip");
+  const std::string tst_path = GetTmpPath("gzip_stream-127");
+
+  // Compress the file.
+  {
+    std::ifstream src(src_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(src.is_open(), true);
+
+    std::ofstream arc(arc_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    gzip_ostreambuf ostreambuf(arc);
+    std::ostream ostream(&ostreambuf);
+    std::copy(std::istreambuf_iterator<char>(src),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(ostream));
+    ostream.flush();
+    EXPECT_EQ(ostream.good(), true);
+    arc.close();
+    src.close();
+  }
+
+  // Decompress the file.
+  {
+    std::ifstream arc(arc_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    std::ofstream tst(tst_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(tst.is_open(), true);
+
+    gzip_istreambuf istreambuf(arc);
+    std::istream istream(&istreambuf);
+    std::copy(std::istreambuf_iterator<char>(istream),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(tst));
+    tst.flush();
+    EXPECT_EQ(istream.good(), true);
+    tst.close();
+    arc.close();
+  }
+
+  EXPECT_EQ(FilesEqual(src_path, tst_path), true);
+  std::remove(arc_path.c_str());
+  std::remove(tst_path.c_str());
+}
+
+TEST(StreamTest, Write16384BytesGzipStream) {
+  const std::string src_path = GetTestPath("gzip_stream-16384");
+  const std::string arc_path = GetTmpPath("gzip_stream-16384.gzip");
+  const std::string tst_path = GetTmpPath("gzip_stream-16384");
+
+  // Compress the file.
+  {
+    std::ifstream src(src_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(src.is_open(), true);
+
+    std::ofstream arc(arc_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    gzip_ostreambuf ostreambuf(arc);
+    std::ostream ostream(&ostreambuf);
+    std::copy(std::istreambuf_iterator<char>(src),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(ostream));
+    ostream.flush();
+    EXPECT_EQ(ostream.good(), true);
+    arc.close();
+    src.close();
+  }
+
+  // Decompress the file.
+  {
+    std::ifstream arc(arc_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    std::ofstream tst(tst_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(tst.is_open(), true);
+
+    gzip_istreambuf istreambuf(arc);
+    std::istream istream(&istreambuf);
+    std::copy(std::istreambuf_iterator<char>(istream),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(tst));
+    tst.flush();
+    EXPECT_EQ(istream.good(), true);
+    tst.close();
+    arc.close();
+  }
+
+  EXPECT_EQ(FilesEqual(src_path, tst_path), true);
+  std::remove(arc_path.c_str());
+  std::remove(tst_path.c_str());
+}
+
+TEST(StreamTest, Write16511BytesGzipStream) {
+  const std::string src_path = GetTestPath("gzip_stream-16511");
+  const std::string arc_path = GetTmpPath("gzip_stream-16511.gzip");
+  const std::string tst_path = GetTmpPath("gzip_stream-16511");
+
+  // Compress the file.
+  {
+    std::ifstream src(src_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(src.is_open(), true);
+
+    std::ofstream arc(arc_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    gzip_ostreambuf ostreambuf(arc);
+    std::ostream ostream(&ostreambuf);
+    std::copy(std::istreambuf_iterator<char>(src),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(ostream));
+    ostream.flush();
+    EXPECT_EQ(ostream.good(), true);
+    arc.close();
+    src.close();
+  }
+
+  // Decompress the file.
+  {
+    std::ifstream arc(arc_path, std::ios::in | std::ios::binary);
+    EXPECT_EQ(arc.is_open(), true);
+
+    std::ofstream tst(tst_path, std::ios::out | std::ios::binary);
+    EXPECT_EQ(tst.is_open(), true);
+
+    gzip_istreambuf istreambuf(arc);
+    std::istream istream(&istreambuf);
+    std::copy(std::istreambuf_iterator<char>(istream),
+              std::istreambuf_iterator<char>(),
+              std::ostreambuf_iterator<char>(tst));
+    tst.flush();
+    EXPECT_EQ(istream.good(), true);
+    tst.close();
+    arc.close();
+  }
+
+  EXPECT_EQ(FilesEqual(src_path, tst_path), true);
+  std::remove(arc_path.c_str());
+  std::remove(tst_path.c_str());
+}

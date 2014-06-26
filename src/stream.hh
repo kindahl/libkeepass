@@ -162,4 +162,24 @@ public:
   virtual int underflow() override;
 };
 
+class gzip_ostreambuf final :
+    public std::basic_streambuf<char, std::char_traits<char>> {
+ private:
+  static const std::size_t kBufferSize = 16384;
+
+  std::ostream& dst_;
+  z_stream z_stream_;
+
+  std::vector<char> buffer_;
+
+  bool WriteOutput(bool flush);
+
+public:
+  gzip_ostreambuf(std::ostream& dst);
+  ~gzip_ostreambuf();
+
+  virtual int overflow(int c) override;
+  virtual int sync() override;
+};
+
 }   // namespace keepass

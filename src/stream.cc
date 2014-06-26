@@ -172,4 +172,74 @@ int gzip_istreambuf::underflow() {
       std::char_traits<char>::to_int_type(*gptr());
 }
 
+gzip_ostreambuf::gzip_ostreambuf(std::ostream& dst) :
+    dst_(dst) {
+  z_stream_.zalloc = Z_NULL;
+  z_stream_.zfree = Z_NULL;
+  z_stream_.opaque = Z_NULL;
+  z_stream_.avail_in = 0;
+  z_stream_.next_in = Z_NULL;
+  z_stream_.avail_out = 0;
+  z_stream_.next_out = Z_NULL;
+
+  if (deflateInit2(&z_stream_, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+                   16 + MAX_WBITS, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
+    throw std::runtime_error("failed to initialize gzip compressor.");
+  }
+}
+
+gzip_ostreambuf::~gzip_ostreambuf() {
+  deflateEnd(&z_stream_);
+}
+
+bool gzip_ostreambuf::WriteOutput(bool flush) {
+  std::array<char, kBufferSize> out;
+
+  z_stream_.avail_in = buffer_.size();
+  z_stream_.next_in = reinterpret_cast<uint8_t*>(buffer_.data());
+
+  do {
+    z_stream_.avail_out = out.size();
+    z_stream_.next_out = reinterpret_cast<uint8_t*>(out.data());
+
+    int res = deflate(&z_stream_, flush ? Z_FINISH : Z_NO_FLUSH);
+    assert(res != Z_STREAM_ERROR);
+    if (res < 0)
+      return false;
+
+    std::size_t output_bytes = out.size() - z_stream_.avail_out;
+    dst_.write(out.data(), output_bytes);
+    if (!dst_.good())
+      return false;
+  } while (z_stream_.avail_out == 0);
+
+  assert(z_stream_.avail_in == 0);
+  buffer_.clear();
+
+  return true;
+}
+
+int gzip_ostreambuf::overflow(int c) {
+  if (c == std::char_traits<char>::eof())
+    return c;
+
+  if (c > 0xff) {
+    throw std::runtime_error(
+        "internal error, trying to write multiple bytes to byte stream.");
+  }
+
+  buffer_.push_back(static_cast<char>(c));
+
+  if (buffer_.size() == kBufferSize) {
+    if (!WriteOutput(false))
+      throw std::runtime_error("error deflating data.");
+  }
+
+  return std::char_traits<char>::to_int_type(static_cast<char>(c));
+}
+
+int gzip_ostreambuf::sync() {
+  return WriteOutput(true) ? 0 : -1;
+}
+
 }   // namespace keepass
