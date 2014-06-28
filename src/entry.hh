@@ -65,6 +65,9 @@ class Entry final {
       Association(const std::string window, const std::string sequence)
         : window_(window), sequence_(sequence) {}
 
+      const std::string window() const { return window_; }
+      const std::string sequence() const { return sequence_; }
+
       bool operator==(const Association& other) const {
         return window_ == other.window_ && sequence_ == other.sequence_;
       }
@@ -89,6 +92,9 @@ class Entry final {
     const std::string& sequence() const { return sequence_; }
     void set_sequence(const std::string& sequence) { sequence_ = sequence; }
 
+    const std::vector<Association> &associations() const {
+      return associations_;
+    }
     void AddAssociation(const std::string& window,
                         const std::string& sequence) {
       associations_.push_back(Association(window, sequence));
@@ -121,6 +127,9 @@ class Entry final {
       key_ = std::move(other.key_);
       value_ = std::move(other.value_);
     }
+
+    const std::string& key() const { return key_; }
+    const protect<std::string>& value() const { return value_; }
 
     Field& operator=(const Field& other) {
       key_ = other.key_;
@@ -234,10 +243,16 @@ class Entry final {
   void set_fg_color(const std::string& fg_color) { fg_color_ = fg_color; }
 
   AutoType& auto_type() { return auto_type_; }
+  const std::vector<std::shared_ptr<Attachment>>& attachments() const {
+    return attachments_;
+  }
+  const std::vector<std::shared_ptr<Entry>>& history() const {
+    return history_;
+  }
+  const std::vector<Field>& custom_fields() const { return custom_fields_; }
 
   void AddAttachment(std::shared_ptr<Attachment> attachment);
   bool HasAttachment() const;
-  const std::vector<std::shared_ptr<Attachment>>& GetAttachments() const;
   void AddHistoryEntry(std::shared_ptr<Entry> entry);
   void AddCustomField(std::string& key, const protect<std::string>& value);
 

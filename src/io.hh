@@ -55,5 +55,8 @@ void conserve<std::string>(std::ostream& dst, const std::string& val);
 template <>
 void conserve<std::vector<char>>(std::ostream& dst,
                                  const std::vector<char>& val);
+template <>
+void conserve<std::vector<uint8_t>>(std::ostream& dst,
+                                    const std::vector<uint8_t>& val);
 
 }   // namespace keepass

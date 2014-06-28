@@ -40,8 +40,9 @@ class Database final {
   std::vector<uint8_t> master_seed_;
   std::array<uint8_t, 16> init_vector_ = { { 0 } };
   std::array<uint8_t, 32> transform_seed_ { { 0 } };
+  std::array<uint8_t, 32> inner_random_stream_key_ = { { 0 } };
   uint64_t transform_rounds_ = 8192;
-  bool compressed_ = false;
+  bool compress_ = false;
   std::shared_ptr<Metadata> meta_;
 
  public:
@@ -72,13 +73,20 @@ class Database final {
     transform_seed_ = transform_seed;
   }
 
+  const std::array<uint8_t, 32>& inner_random_stream_key() const {
+    return inner_random_stream_key_;
+  }
+  void set_inner_random_stream_key(const std::array<uint8_t, 32>& key) {
+    inner_random_stream_key_ = key;
+  }
+
   uint64_t transform_rounds() const { return transform_rounds_; }
   void set_transform_rounds(uint64_t transform_rounds) {
     transform_rounds_ = transform_rounds;
   }
 
-  bool compressed() const { return compressed_; }
-  void set_compressed(bool compressed) { compressed_ = compressed; }
+  bool compress() const { return compress_; }
+  void set_compress(bool compress) { compress_ = compress; }
 
   std::shared_ptr<Metadata> meta() const { return meta_; }
   void set_meta(std::shared_ptr<Metadata> meta) { meta_ = meta; }

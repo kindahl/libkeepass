@@ -74,6 +74,9 @@ class Metadata final {
       value_ = std::move(other.value_);
     }
 
+    const std::string& key() const { return key_; }
+    const std::string& value() const { return value_; }
+
     Field& operator=(const Field& other) {
       key_ = other.key_;
       value_ = other.value_;
@@ -195,6 +198,14 @@ class Metadata final {
   void set_last_visible_group(std::weak_ptr<Group> group) {
     last_visible_group_ = group;
   }
+
+  const std::vector<std::shared_ptr<Binary>>& binaries() const {
+    return binaries_;
+  }
+  const std::vector<std::shared_ptr<Icon>>& icons() const {
+    return icons_;
+  }
+  const std::vector<Field>& fields() const { return fields_; }
 
   void AddBinary(std::shared_ptr<Binary> binary);
   void AddIcon(std::shared_ptr<Icon> icon);

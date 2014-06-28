@@ -452,8 +452,8 @@ void KdbFile::WriteEntry(std::ostream& dst,
   conserve<KdbTime>(dst, expiry_time);
 
   if (entry->HasAttachment()) {
-    assert(entry->GetAttachments().size() == 1);
-    std::shared_ptr<Entry::Attachment> attachment = entry->GetAttachments()[0];
+    assert(entry->attachments().size() == 1);
+    std::shared_ptr<Entry::Attachment> attachment = entry->attachments()[0];
     if (!attachment->name().empty()) {
       conserve<uint16_t>(dst, static_cast<uint16_t>(
           KdbEntryFieldType::kAttachmentName));

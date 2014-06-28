@@ -20,6 +20,7 @@
 #include "cipher.hh"
 
 #include <memory>
+#include <random>
 #include <vector>
 
 namespace keepass {
@@ -44,5 +45,20 @@ class RandomObfuscator {
   std::vector<uint8_t> Process(const std::vector<uint8_t>& data);
   std::string Process(const std::string& data);
 };
+
+template <std::size_t N>
+std::array<uint8_t, N> random_array() {
+  std::random_device rd;
+  std::mt19937 engine(rd());
+
+  std::uniform_int_distribution<uint8_t> uniform_dist(0, 255);
+
+  // Fill block with random values.
+  std::array<uint8_t, N> array;
+  for (std::size_t i = 0; i < N; ++i)
+    array[i] = uniform_dist(engine);
+
+  return array;
+}
 
 }   // namespace keepass

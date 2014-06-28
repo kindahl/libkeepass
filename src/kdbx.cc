@@ -94,9 +94,17 @@ struct KdbxHeaderField {
     kInnerRandomStreamKey = 8,
     kContentStreamStartBytes = 9,
     kInnerRandomStreamId = 10
-  } id;
+  } id = kEndOfHeader;
 
-  uint16_t size;
+  uint16_t size = 0;
+
+  KdbxHeaderField() = default;
+  KdbxHeaderField(Id new_id, uint16_t new_size) :
+      id(new_id), size(new_size) {}
+  KdbxHeaderField(KdbxHeaderField&& other) {
+    id = std::move(other.id);
+    size = std::move(other.size);
+  }
 };
 static_assert(sizeof(KdbxHeaderField) == 3,
               "bad packing of bitfield header structure.");
@@ -109,16 +117,21 @@ void KdbxFile::Reset() {
   header_hash_ = { 0 };
 }
 
-std::shared_ptr<Group> KdbxFile::GetGroup(const std::string& uuid) {
-  if (uuid.empty())
+std::shared_ptr<Group> KdbxFile::GetGroup(const std::string& uuid_str) {
+  if (uuid_str.empty())
     return nullptr;
 
-  auto it = group_pool_.find(uuid);
+  auto it = group_pool_.find(uuid_str);
   if (it != group_pool_.end())
     return it->second;
 
+  std::array<uint8_t, 16> uuid;
+  base64_decode(uuid_str, bounds_checked(uuid));
+
   std::shared_ptr<Group> group = std::make_shared<Group>();
-  group_pool_.insert(std::make_pair(uuid, group));
+  group->set_uuid(uuid);
+
+  group_pool_.insert(std::make_pair(uuid_str, group));
   return group;
 }
 
@@ -136,6 +149,16 @@ std::time_t KdbxFile::ParseDateTime(const char* text) const {
   assert(*res == 'Z' || *res == '\0');
 
   return timegm(&tm);
+}
+
+std::string KdbxFile::WriteDateTime(std::time_t time) const {
+  if (time == 0)
+    return "2999-12-28T22:59:59Z";
+
+  char buffer[128];
+  std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ",
+                std::gmtime(&time));
+  return buffer;
 }
 
 protect<std::string> KdbxFile::ParseProtectedString(
@@ -157,6 +180,17 @@ protect<std::string> KdbxFile::ParseProtectedString(
   }
 
   return protect<std::string>(std::string(), false);
+}
+
+void KdbxFile::WriteProtectedString(pugi::xml_node& node,
+                                    const protect<std::string>& str,
+                                    RandomObfuscator& obfuscator) const {
+  if (str.is_protected()) {
+    node.append_attribute("Protected").set_value(true);
+    node.text().set(base64_encode(obfuscator.Process(*str)).c_str());
+  } else {
+    node.text().set(str->c_str());
+  }
 }
 
 std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
@@ -229,7 +263,10 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
       if (data.empty())
         continue;
 
-      std::shared_ptr<Icon> icon = std::make_shared<Icon>(data);
+      std::array<uint8_t, 16> uuid;
+      base64_decode(icon_node.child_value("UUID"), bounds_checked(uuid));
+
+      std::shared_ptr<Icon> icon = std::make_shared<Icon>(uuid, data);
       meta->AddIcon(icon);
 
       icon_pool_.insert(std::make_pair(icon_node.child_value("UUID"), icon));
@@ -244,11 +281,13 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
 
       protect<std::string> data;
 
+      bool compressed = false;
       if (bin_node.attribute("Protected").as_bool()) {
         data = protect<std::string>(obfuscator.Process(
             base64_decode(bin_node.text().as_string())), true);
       } else {
         if (bin_node.attribute("Compressed").as_bool()) {
+          compressed = true;
           std::stringstream raw_stream(
               base64_decode(bin_node.text().as_string()));
           gzip_istreambuf gzip_streambuf(raw_stream);
@@ -265,6 +304,7 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
       }
 
       std::shared_ptr<Binary> binary = std::make_shared<Binary>(data);
+      binary->set_compress(compressed);
       meta->AddBinary(binary);
 
       binary_pool_.insert(std::make_pair(id, binary));
@@ -287,6 +327,133 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
   }
 
   return meta;
+}
+
+void KdbxFile::WriteMeta(pugi::xml_node& meta_node,
+                         RandomObfuscator& obfuscator,
+                         std::shared_ptr<Metadata> meta) {
+  meta_node.append_child("HeaderHash").text().set(base64_encode(
+      header_hash_.begin(), header_hash_.end()).c_str());
+  meta_node.append_child("Generator").text().set(meta->generator().c_str());
+  meta_node.append_child("DatabaseName").text().set(
+      meta->database_name()->c_str());
+  meta_node.append_child("DatabaseNameChanged").text().set(WriteDateTime(
+      meta->database_name().time()).c_str());
+  meta_node.append_child("DatabaseDescription").text().set(
+      meta->database_desc()->c_str());
+  meta_node.append_child("DatabaseDescriptionChanged").text().set(
+      WriteDateTime(meta->database_desc().time()).c_str());
+  meta_node.append_child("DefaultUserName").text().set(
+      meta->default_username()->c_str());
+  meta_node.append_child("DefaultUserNameChanged").text().set(WriteDateTime(
+      meta->default_username().time()).c_str());
+  meta_node.append_child("MaintenanceHistoryDays").text().set(
+      meta->maintenance_hist_days());
+  meta_node.append_child("Color").text().set(meta->database_color().c_str());
+  meta_node.append_child("MasterKeyChanged").text().set(WriteDateTime(
+      meta->master_key_changed()).c_str());
+  meta_node.append_child("MasterKeyChangeRec").text().set(
+      static_cast<long long>(meta->master_key_change_rec()));
+  meta_node.append_child("MasterKeyChangeForce").text().set(
+      static_cast<long long>(meta->master_key_change_force()));
+
+  pugi::xml_node mp_node = meta_node.append_child("MemoryProtection");
+  mp_node.append_child("ProtectTitle").text().set(
+      meta->memory_protection().title());
+  mp_node.append_child("ProtectUserName").text().set(
+      meta->memory_protection().username());
+  mp_node.append_child("ProtectPassword").text().set(
+      meta->memory_protection().password());
+  mp_node.append_child("ProtectURL").text().set(
+      meta->memory_protection().url());
+  mp_node.append_child("ProtectNotes").text().set(
+      meta->memory_protection().notes());
+
+  if (meta->recycle_bin()) {
+    meta_node.append_child("RecycleBinEnabled").text().set(true);
+    meta_node.append_child("RecycleBinUUID").text().set(base64_encode(
+        meta->recycle_bin()->uuid().begin(),
+        meta->recycle_bin()->uuid().end()).c_str());
+  } else {
+    meta_node.append_child("RecycleBinEnabled").text().set(false);
+  }
+  meta_node.append_child("RecycleBinChanged").text().set(WriteDateTime(
+      meta->recycle_bin_changed()).c_str());
+
+  if (meta->entry_templates()) {
+    meta_node.append_child("EntryTemplatesGroup").text().set(base64_encode(
+        meta->entry_templates()->uuid().begin(),
+        meta->entry_templates()->uuid().end()).c_str());
+  } else {
+    assert(false);
+  }
+  meta_node.append_child("EntryTemplatesGroupChanged").text().set(
+      WriteDateTime(meta->entry_templates_changed()).c_str());
+
+  meta_node.append_child("HistoryMaxItems").text().set(
+      meta->history_max_items());
+  meta_node.append_child("HistoryMaxSize").text().set(
+      static_cast<long long>(meta->history_max_size()));
+
+  if (auto group = meta->last_selected_group().lock()) {
+    meta_node.append_child("LastSelectedGroup").text().set(base64_encode(
+        group->uuid().begin(), group->uuid().end()).c_str());
+  }
+
+  if (auto group = meta->last_visible_group().lock()) {
+    meta_node.append_child("LastTopVisibleGroup").text().set(base64_encode(
+        group->uuid().begin(), group->uuid().end()).c_str());
+  }
+
+  pugi::xml_node icons_node = meta_node.append_child("CustomIcons");
+  for (auto icon : meta->icons()) {
+    pugi::xml_node icon_node = icons_node.append_child("Icon");
+    icon_node.append_child("UUID").text().set(base64_encode(
+        icon->uuid().begin(), icon->uuid().end()).c_str());
+    icon_node.append_child("Data").text().set(base64_encode(
+        icon->data().begin(), icon->data().end()).c_str());
+  }
+
+  uint32_t binary_id = 0;
+  pugi::xml_node bins_node = meta_node.append_child("Binaries");
+  for (auto binary : meta->binaries()) {
+    pugi::xml_node bin_node = bins_node.append_child("Binary");
+    bin_node.append_attribute("ID").set_value(binary_id);
+
+    if (binary->data().is_protected()) {
+      bin_node.append_attribute("Protected").set_value(true);
+      bin_node.text().set(base64_encode(obfuscator.Process(
+          *binary->data())).c_str());
+    } else {
+      if (binary->compress()) {
+        bin_node.append_attribute("Compressed").set_value(true);
+        std::stringstream compressed_data;
+
+        gzip_ostreambuf gzip_streambuf(compressed_data);
+        std::ostream gzip_stream(&gzip_streambuf);
+        std::copy(binary->data()->begin(), binary->data()->end(),
+                  std::ostreambuf_iterator<char>(gzip_stream));
+        gzip_stream.flush();
+
+        bin_node.text().set(base64_encode(
+              std::istreambuf_iterator<char>(compressed_data), 
+              std::istreambuf_iterator<char>()).c_str());
+      } else {
+        bin_node.text().set(base64_encode(*binary->data()).c_str());
+      }
+    }
+
+    binary_pool_.insert(std::make_pair(std::to_string(binary_id), binary));
+
+    ++binary_id;
+  }
+
+  pugi::xml_node data_node = meta_node.append_child("CustomData");
+  for (auto field : meta->fields()) {
+    pugi::xml_node item_node = data_node.append_child("Item");
+    item_node.append_child("Key").text().set(field.key().c_str());
+    item_node.append_child("Value").text().set(field.value().c_str());
+  }
 }
 
 std::shared_ptr<Entry> KdbxFile::ParseEntry(
@@ -438,6 +605,115 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
   return entry;
 }
 
+void KdbxFile::WriteEntry(pugi::xml_node& entry_node,
+                          RandomObfuscator& obfuscator,
+                          std::shared_ptr<Entry> entry) {
+  entry_node.append_child("UUID").text().set(base64_encode(
+      entry->uuid().begin(), entry->uuid().end()).c_str());
+  entry_node.append_child("IconID").text().set(entry->icon());
+  entry_node.append_child("ForegroundColor").text().set(
+      entry->fg_color().c_str());
+  entry_node.append_child("BackgroundColor").text().set(
+      entry->bg_color().c_str());
+  entry_node.append_child("OverrideURL").text().set(
+      entry->override_url().c_str());
+  entry_node.append_child("Tags").text().set(entry->tags().c_str());
+
+  if (auto icon = entry->custom_icon().lock()) {
+    entry_node.append_child("CustomIconUUID").text().set(
+        base64_encode(icon->uuid().begin(), icon->uuid().end()).c_str());
+  }
+
+  pugi::xml_node times_node = entry_node.append_child("Times");
+  times_node.append_child("CreationTime").text().set(WriteDateTime(
+      entry->creation_time()).c_str());
+  times_node.append_child("LastModificationTime").text().set(WriteDateTime(
+      entry->modification_time()).c_str());
+  times_node.append_child("LastAccessTime").text().set(WriteDateTime(
+      entry->access_time()).c_str());
+  times_node.append_child("ExpiryTime").text().set(WriteDateTime(
+      entry->expiry_time()).c_str());
+  times_node.append_child("LocationChanged").text().set(WriteDateTime(
+      entry->move_time()).c_str());
+  times_node.append_child("Expires").text().set(entry->expires());
+  times_node.append_child("UsageCount").text().set(entry->usage_count());
+
+  pugi::xml_node autotype_node = entry_node.append_child("AutoType");
+  autotype_node.append_child("Enabled").text().set(entry->auto_type().enabled());
+  autotype_node.append_child("DataTransferObfuscation").text().set(
+      entry->auto_type().obfuscation());
+  autotype_node.append_child("DefaultSequence").text().set(
+      entry->auto_type().sequence().c_str());
+
+  for (auto ass : entry->auto_type().associations()) {
+    pugi::xml_node ass_node = autotype_node.append_child("Association");
+    ass_node.append_child("Window").text().set(ass.window().c_str());
+    ass_node.append_child("KeystrokeSequence").text().set(
+        ass.sequence().c_str());
+  }
+
+  // Write string fields.
+  pugi::xml_node str_node = entry_node.append_child("String");
+  str_node.append_child("Key").text().set("Title");
+  pugi::xml_node val_node = str_node.append_child("Value");
+  WriteProtectedString(val_node, entry->title(), obfuscator);
+
+  str_node = entry_node.append_child("String");
+  str_node.append_child("Key").text().set("URL");
+  val_node = str_node.append_child("Value");
+  WriteProtectedString(val_node, entry->url(), obfuscator);
+
+  str_node = entry_node.append_child("String");
+  str_node.append_child("Key").text().set("UserName");
+  val_node = str_node.append_child("Value");
+  WriteProtectedString(val_node, entry->username(), obfuscator);
+
+  str_node = entry_node.append_child("String");
+  str_node.append_child("Key").text().set("Password");
+  val_node = str_node.append_child("Value");
+  WriteProtectedString(val_node, entry->password(), obfuscator);
+
+  str_node = entry_node.append_child("String");
+  str_node.append_child("Key").text().set("Notes");
+  val_node = str_node.append_child("Value");
+  WriteProtectedString(val_node, entry->notes(), obfuscator);
+
+  for (auto field : entry->custom_fields()) {
+    str_node = entry_node.append_child("String");
+    str_node.append_child("Key").text().set(field.key().c_str());
+    val_node = str_node.append_child("Value");
+    WriteProtectedString(val_node, field.value(), obfuscator);
+  }
+
+  // Write binary fields.
+  for (auto attachment : entry->attachments()) {
+    pugi::xml_node bin_node = entry_node.append_child("Binary");
+    bin_node.append_child("Key").text().set(attachment->name().c_str());
+
+    bool found_in_pool = false;
+    for (auto it : binary_pool_) {
+      if (it.second == attachment->binary()) {
+        bin_node.append_child("Value").append_attribute("Ref").set_value(
+            it.first.c_str());
+        found_in_pool = true;
+        break;
+      }
+    }
+
+    if (!found_in_pool) {
+      bin_node.append_child("Value").text().set(base64_encode(
+          attachment->binary()->data()).c_str());
+    }
+  }
+
+  // Write history entries.
+  pugi::xml_node history_node = entry_node.append_child("History");
+  for (auto histentry : entry->history()) {
+    pugi::xml_node histentry_node = history_node.append_child("Entry");
+    WriteEntry(histentry_node, obfuscator, histentry);
+  }
+}
+
 std::shared_ptr<Group> KdbxFile::ParseGroup(
     const pugi::xml_node& group_node,
     RandomObfuscator& obfuscator) {
@@ -508,6 +784,56 @@ std::shared_ptr<Group> KdbxFile::ParseGroup(
   return group;
 }
 
+void KdbxFile::WriteGroup(pugi::xml_node& group_node,
+                          RandomObfuscator& obfuscator,
+                          std::shared_ptr<Group> group) {
+  group_node.append_child("UUID").text().set(base64_encode(
+      group->uuid().begin(), group->uuid().end()).c_str());
+  group_node.append_child("Name").text().set(group->name().c_str());
+  group_node.append_child("Notes").text().set(group->notes().c_str());
+  group_node.append_child("IconID").text().set(group->icon());
+
+  if (auto icon = group->custom_icon().lock()) {
+    group_node.append_child("CustomIconUUID").text().set(
+        base64_encode(icon->uuid().begin(), icon->uuid().end()).c_str());
+  }
+
+  pugi::xml_node times_node = group_node.append_child("Times");
+  times_node.append_child("CreationTime").text().set(WriteDateTime(
+      group->creation_time()).c_str());
+  times_node.append_child("LastModificationTime").text().set(WriteDateTime(
+      group->modification_time()).c_str());
+  times_node.append_child("LastAccessTime").text().set(WriteDateTime(
+      group->access_time()).c_str());
+  times_node.append_child("ExpiryTime").text().set(WriteDateTime(
+      group->expiry_time()).c_str());
+  times_node.append_child("LocationChanged").text().set(WriteDateTime(
+      group->move_time()).c_str());
+  times_node.append_child("Expires").text().set(group->expires());
+  times_node.append_child("UsageCount").text().set(group->usage_count());
+
+  group_node.append_child("IsExpanded").text().set(group->expanded());
+  group_node.append_child("DefaultAutoTypeSequence").text().set(
+      group->default_autotype_sequence().c_str());
+  group_node.append_child("EnableAutoType").text().set(group->autotype());
+  group_node.append_child("EnableSearching").text().set(group->search());
+
+  if (auto entry = group->last_visible_entry().lock()) {
+    group_node.append_child("LastTopVisibleEntry").text().set(
+        base64_encode(entry->uuid().begin(), entry->uuid().end()).c_str());
+  }
+
+  for (auto entry : group->Entries()) {
+    pugi::xml_node entry_node = group_node.append_child("Entry");
+    WriteEntry(entry_node, obfuscator, entry);
+  }
+
+  for (auto subgroup : group->Groups()) {
+    pugi::xml_node subgroup_node = group_node.append_child("Group");
+    WriteGroup(subgroup_node, obfuscator, subgroup);
+  }
+}
+
 void KdbxFile::ParseXml(std::istream& src,
                         RandomObfuscator& obfuscator,
                         Database& db) {
@@ -575,6 +901,21 @@ void KdbxFile::PrintXml(pugi::xml_document& doc) {
 }
 #endif
 
+void KdbxFile::WriteXml(std::ostream& dst, RandomObfuscator& obfuscator,
+                        const Database& db) {
+  pugi::xml_document doc;
+
+  pugi::xml_node kpf_node = doc.append_child("KeePassFile");
+  pugi::xml_node meta_node = kpf_node.append_child("Meta");
+  pugi::xml_node group_node =
+      kpf_node.append_child("Root").append_child("Group");
+
+  WriteMeta(meta_node, obfuscator, db.meta());
+  WriteGroup(group_node, obfuscator, db.root().lock());
+
+  doc.save(dst);
+}
+
 std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
                                            const Key& key) {
   Reset();
@@ -602,7 +943,6 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
   if (kdb_ver > req_ver)
     throw std::runtime_error("unsupported database version, database is too new.");
 
-  std::array<uint8_t, 32> inner_random_stream_key = { { 0 } };
   std::array<uint8_t, 32> content_start_bytes = { { 0 } };
 
   std::unique_ptr<Database> db(new Database());
@@ -637,7 +977,7 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
         uint32_t comp_flags = consume<uint32_t>(field);
         if (comp_flags > static_cast<uint32_t>(kKdbxCompressionFlags::kCount))
           throw std::runtime_error("unsupported compression method in header.");
-        db->set_compressed(comp_flags ==
+        db->set_compress(comp_flags ==
             static_cast<uint32_t>(kKdbxCompressionFlags::kGzip));
         break;
       }
@@ -664,7 +1004,8 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
           throw std::runtime_error(
               "illegal protected stream key size in header.");
         }
-        inner_random_stream_key = consume<std::array<uint8_t, 32>>(field);
+        db->set_inner_random_stream_key(
+            consume<std::array<uint8_t, 32>>(field));
         break;
       case KdbxHeaderField::kContentStreamStartBytes:
         if (header_field.size != 32) {
@@ -748,8 +1089,8 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
   std::array<uint8_t, 32> final_inner_random_stream_key;
   SHA256_Init(&sha256);
   SHA256_Update(&sha256,
-                inner_random_stream_key.data(),
-                inner_random_stream_key.size());
+                db->inner_random_stream_key().data(),
+                db->inner_random_stream_key().size());
   SHA256_Final(final_inner_random_stream_key.data(), &sha256);
   RandomObfuscator obfuscator(final_inner_random_stream_key,
                               kKdbxInnerRandomStreamInitVec);
@@ -758,7 +1099,7 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
   hashed_istreambuf hashed_streambuf(content);
   std::istream hashed_stream(&hashed_streambuf);
 
-  if (db->compressed()) {
+  if (db->compress()) {
     gzip_istreambuf gzip_streambuf(hashed_stream);
     std::istream gzip_stream(&gzip_streambuf);
 
@@ -774,9 +1115,132 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
   return db;
 }
 
-void KdbxFile::Export(const std::string&, const Database&,
-                      const Key&) {
+void KdbxFile::Export(const std::string& path, const Database& db,
+                      const Key& key) {
   Reset();
+
+  std::ofstream dst(path, std::ios::out | std::ios::binary);
+  if (!dst.is_open())
+    throw std::runtime_error("unable to open file.");
+
+  // Produce the final key used for encrypting the contents.
+  std::array<uint8_t, 32> transformed_key = key.Transform(
+      db.transform_seed(), db.transform_rounds(),
+      Key::SubKeyResolution::kHashSubKeys);
+  std::array<uint8_t, 32> final_key;
+
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256, db.master_seed().data(), db.master_seed().size());
+  SHA256_Update(&sha256, transformed_key.data(), transformed_key.size());
+  SHA256_Final(final_key.data(), &sha256);
+
+  assert(db.cipher() == Database::Cipher::kAes);
+  std::unique_ptr<Cipher<16>> cipher(
+      new AesCipher(final_key, db.init_vector()));
+
+  // Write header to temporary stream so that we can compute the hash of it.
+  KdbxHeader header;
+  header.signature0 = kKdbxSignature0;
+  header.signature1 = kKdbxSignature1;
+  header.version = kKdbxVersionCriticalMin;
+
+  std::stringstream header_stream;
+  conserve<KdbxHeader>(header_stream, header);
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kCipherId, 16));
+  conserve<std::array<uint8_t, 16>>(header_stream, kKdbxCipherAes);
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kCompressionFlags, 4));
+  conserve<uint32_t>(header_stream, db.compress() ?
+      static_cast<uint32_t>(kKdbxCompressionFlags::kGzip) : 0);
+
+  if (db.master_seed().size() >
+      std::numeric_limits<decltype(KdbxHeaderField::size)>::max()) {
+    throw std::runtime_error("master seed is too large.");
+  }
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kMasterSeed, db.master_seed().size()));
+  conserve<std::vector<uint8_t>>(header_stream, db.master_seed());
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kTransformSeed, 32));
+  conserve<std::array<uint8_t, 32>>(header_stream, db.transform_seed());
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kTransformRounds, 8));
+  conserve<uint64_t>(header_stream, db.transform_rounds());
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kExcryptionInitVec, 16));
+  conserve<std::array<uint8_t, 16>>(header_stream, db.init_vector());
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kInnerRandomStreamKey, 32));
+  conserve<std::array<uint8_t, 32>>(header_stream,
+      db.inner_random_stream_key());
+
+  std::array<uint8_t, 32> content_start_bytes = random_array<32>();
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kContentStreamStartBytes, 32));
+  conserve<std::array<uint8_t, 32>>(header_stream, content_start_bytes);
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kInnerRandomStreamId, 4));
+  conserve<uint32_t>(header_stream,
+      static_cast<uint32_t>(kKdbxRandomStream::kSalsa20));
+
+  conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
+      KdbxHeaderField::kEndOfHeader, 0));
+
+  // Compute the header hash.
+  std::string header_data = header_stream.str();
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256, header_data.c_str(), header_data.size());
+  SHA256_Final(header_hash_.data(), &sha256);
+
+  // Write header to file.
+  std::copy(std::istreambuf_iterator<char>(header_stream),
+            std::istreambuf_iterator<char>(),
+            std::ostreambuf_iterator<char>(dst));
+
+  // Prepare deobfuscation stream.
+  std::array<uint8_t, 32> final_inner_random_stream_key;
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256,
+                db.inner_random_stream_key().data(),
+                db.inner_random_stream_key().size());
+  SHA256_Final(final_inner_random_stream_key.data(), &sha256);
+  RandomObfuscator obfuscator(final_inner_random_stream_key,
+                              kKdbxInnerRandomStreamInitVec);
+
+  // Write content to content stream.
+  std::stringstream content_stream;
+  conserve<std::array<uint8_t, 32>>(content_stream, content_start_bytes);
+
+  hashed_ostreambuf hashed_streambuf(content_stream);
+  std::ostream hashed_stream(&hashed_streambuf);
+
+  if (db.compress()) {
+    gzip_ostreambuf gzip_streambuf(hashed_stream);
+    std::ostream gzip_stream(&gzip_streambuf);
+
+    WriteXml(gzip_stream, obfuscator, db);
+    gzip_stream.flush();
+  } else {
+    WriteXml(hashed_stream, obfuscator, db);
+  }
+
+  hashed_stream.flush();
+
+  // Encrypt content.
+  try {
+    encrypt_cbc(content_stream, dst, *cipher);
+  } catch (std::runtime_error& e) {
+    throw std::runtime_error("internal error.");    // FIXME:
+  }
 }
 
 }   // namespace keepass

@@ -36,10 +36,6 @@ bool Entry::HasAttachment() const {
   return !attachments_.empty();
 }
 
-const std::vector<std::shared_ptr<Entry::Attachment>>& Entry::GetAttachments() const {
-  return attachments_;
-}
-
 void Entry::AddHistoryEntry(std::shared_ptr<Entry> entry) {
   history_.push_back(entry);
 }

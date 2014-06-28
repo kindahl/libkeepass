@@ -80,4 +80,12 @@ void conserve<std::vector<char>>(std::ostream& dst,
   dst.write(val.data(), val.size());
 }
 
+template <>
+void conserve<std::vector<uint8_t>>(std::ostream& dst,
+                                    const std::vector<uint8_t>& val) {
+  dst.write(reinterpret_cast<const char*>(val.data()), val.size());
+  if (!dst.good())
+    throw std::runtime_error("unable to conserve data.");
+}
+
 }   // namespace keepass

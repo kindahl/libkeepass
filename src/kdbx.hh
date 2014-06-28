@@ -60,16 +60,23 @@ class KdbxFile final {
 
   void Reset();
 
-  std::shared_ptr<Group> GetGroup(const std::string& uuid);
+  std::shared_ptr<Group> GetGroup(const std::string& uuid_str);
 
   std::time_t ParseDateTime(const char* text) const;
+  std::string WriteDateTime(std::time_t time) const;
+
   protect<std::string> ParseProtectedString(
       const pugi::xml_node& node,
       const char* name,
       RandomObfuscator& obfuscator) const;
+  void WriteProtectedString(pugi::xml_node& node,
+                            const protect<std::string>& str,
+                            RandomObfuscator& obfuscator) const;
 
   std::shared_ptr<Metadata> ParseMeta(const pugi::xml_node& meta_node,
                                       RandomObfuscator& obfuscator);
+  void WriteMeta(pugi::xml_node& meta_node, RandomObfuscator& obfuscator,
+                 std::shared_ptr<Metadata> meta);
 
   /**
    * Parses a an entry in the XML tree.
@@ -81,12 +88,22 @@ class KdbxFile final {
   std::shared_ptr<Entry> ParseEntry(const pugi::xml_node& entry_node,
                                     std::array<uint8_t, 16>& entry_uuid,
                                     RandomObfuscator& obfuscator);
+  void WriteEntry(pugi::xml_node& entry_node,
+                  RandomObfuscator& obfuscator,
+                  std::shared_ptr<Entry> entry);
+
   std::shared_ptr<Group> ParseGroup(const pugi::xml_node& group_node,
                                     RandomObfuscator& obfuscator);
+  void WriteGroup(pugi::xml_node& group_node,
+                  RandomObfuscator& obfuscator,
+                  std::shared_ptr<Group> group);
+
   void ParseXml(std::istream& src, RandomObfuscator& obfuscator, Database& db);
 #ifdef DEBUG
   void PrintXml(pugi::xml_document& doc);
 #endif
+  void WriteXml(std::ostream& dst, RandomObfuscator& obfuscator,
+                const Database& db);
 
  public:
   std::unique_ptr<Database> Import(const std::string& path, const Key& key);
