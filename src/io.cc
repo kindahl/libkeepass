@@ -40,6 +40,9 @@ std::string consume<std::string>(std::istream& src) {
     str.push_back(c);
   }
 
+  if (!src.good())
+    throw std::runtime_error("trying to consume past data limit.");
+
   return str;
 }
 
@@ -49,6 +52,9 @@ std::vector<char> consume<std::vector<char>>(std::istream& src) {
   std::copy(std::istreambuf_iterator<char>(src),
             std::istreambuf_iterator<char>(),
             std::back_inserter(data));
+
+  if (!src.good())
+    throw std::runtime_error("trying to consume past data limit.");
 
   return data;
 }
@@ -66,18 +72,25 @@ std::vector<uint8_t> consume<std::vector<uint8_t>>(std::istream& src) {
   for (std::size_t i = 0; i < data.size(); ++i)
     unsigned_data[i] = data[i];
 
+  if (!src.good())
+    throw std::runtime_error("trying to consume past data limit.");
+
   return unsigned_data;
 }
 
 template <>
 void conserve<std::string>(std::ostream& dst, const std::string& val) {
   dst.write(val.c_str(), val.size() + 1);   // FIXME: Is this safe?
+  if (!dst.good())
+    throw std::runtime_error("unable to conserve data.");
 }
 
 template <>
 void conserve<std::vector<char>>(std::ostream& dst,
                                  const std::vector<char>& val) {
   dst.write(val.data(), val.size());
+  if (!dst.good())
+    throw std::runtime_error("unable to conserve data.");
 }
 
 template <>
