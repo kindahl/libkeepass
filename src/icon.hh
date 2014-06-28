@@ -17,20 +17,20 @@
  */
 
 #pragma once
-#include <string>
+#include <vector>
 
 namespace keepass {
 
 class Icon final {
  private:
-  std::string data_;
+  std::vector<uint8_t> data_;
 
  public:
-  Icon(const std::string& data) :
+  Icon(const std::vector<uint8_t>& data) :
       data_(data) {}
 
-  const std::string& data() const { return data_; }
-  void set_data(const std::string& data) { data_ = data; }
+  const std::vector<uint8_t>& data() const { return data_; }
+  void set_data(const std::vector<uint8_t>& data) { data_ = data; }
 
   bool operator==(const Icon& other) const {
     return data_ == other.data_;

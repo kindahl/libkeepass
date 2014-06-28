@@ -32,6 +32,7 @@
 #include "cipher.hh"
 #include "icon.hh"
 #include "io.hh"
+#include "iterator.hh"
 #include "key.hh"
 #include "metadata.hh"
 #include "pugixml.hh"
@@ -163,10 +164,8 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
   std::shared_ptr<Metadata> meta = std::make_shared<Metadata>();
 
   // Parse header hash and store in member for checking later.
-  std::string hash_str = base64_decode(meta_node.child_value("HeaderHash"));
-  if (hash_str.size() != 32)
-    throw std::runtime_error("invalid header hash.");
-  std::copy(hash_str.begin(), hash_str.end(), header_hash_.begin());
+  base64_decode(meta_node.child_value("HeaderHash"),
+                bounds_checked(header_hash_));
 
   meta->set_generator(meta_node.child_value("Generator"));
   meta->set_database_name(temporal<std::string>(
@@ -225,7 +224,8 @@ std::shared_ptr<Metadata> KdbxFile::ParseMeta(const pugi::xml_node& meta_node,
   if (icons_node) {
     for (pugi::xml_node icon_node = icons_node.child("Icon"); icon_node;
         icon_node = icon_node.next_sibling("Icon")) {
-      std::string data = base64_decode(icon_node.child_value("Data"));
+      std::vector<uint8_t> data;
+      base64_decode(icon_node.child_value("Data"), std::back_inserter(data));
       if (data.empty())
         continue;
 
@@ -295,10 +295,7 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
     RandomObfuscator& obfuscator) {
   std::shared_ptr<Entry> entry = std::make_shared<Entry>();
 
-  std::string uuid_str = base64_decode(entry_node.child_value("UUID"));
-  if (uuid_str.size() != 16)
-    throw std::runtime_error("invalid entry uuid.");
-  std::copy(uuid_str.begin(), uuid_str.end(), entry_uuid.begin());
+  base64_decode(entry_node.child_value("UUID"), bounds_checked(entry_uuid));
 
   entry->set_uuid(entry_uuid);
   entry->set_icon(entry_node.child("IconID").text().as_uint());
@@ -447,12 +444,8 @@ std::shared_ptr<Group> KdbxFile::ParseGroup(
   std::shared_ptr<Group> group = std::make_shared<Group>();
   group_pool_.insert(std::make_pair(group_node.child_value("UUID"), group));
 
-  std::string uuid_str = base64_decode(group_node.child_value("UUID"));
-  if (uuid_str.size() != 16)
-    throw std::runtime_error("invalid group uuid.");
-
   std::array<uint8_t, 16> uuid = { 0 };
-  std::copy(uuid_str.begin(), uuid_str.end(), uuid.begin());
+  base64_decode(group_node.child_value("UUID"), bounds_checked(uuid));
 
   group->set_uuid(uuid);
   group->set_name(group_node.child_value("Name"));
@@ -492,12 +485,8 @@ std::shared_ptr<Group> KdbxFile::ParseGroup(
   group->set_autotype(group_node.child("EnableAutoType").text().as_bool());
   group->set_search(group_node.child("EnableSearching").text().as_bool());
 
-  uuid_str = base64_decode(group_node.child_value("LastTopVisibleEntry"));
-  if (uuid_str.size() != 16)
-    throw std::runtime_error("invalid uuid in group field.");
-
-  std::fill(uuid.begin(), uuid.end(), 0);
-  std::copy(uuid_str.begin(), uuid_str.end(), uuid.begin());
+  base64_decode(group_node.child_value("LastTopVisibleEntry"),
+                bounds_checked(uuid));
 
   for (pugi::xml_node entry_node = group_node.child("Entry"); entry_node;
       entry_node = entry_node.next_sibling("Entry")) {
