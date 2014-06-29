@@ -45,11 +45,11 @@ int main(int argc, const char * argv[]) {
 
     if (kdbx) {
       KdbxFile file;
-      std::cout << file.Import(path, key)->root().lock()->ToJson() <<
+      std::cout << file.Import(path, key)->root()->ToJson() <<
           std::endl;
     } else {
       KdbFile file;
-      std::cout << file.Import(path, key)->root().lock()->ToJson() <<
+      std::cout << file.Import(path, key)->root()->ToJson() <<
           std::endl;
     }
   } catch (std::runtime_error& e) {

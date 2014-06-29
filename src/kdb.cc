@@ -682,7 +682,7 @@ void KdbFile::Export(const std::string& path, const Database& db,
   decltype(KdbHeader::num_groups) num_groups = 0;
   decltype(KdbHeader::num_entries) num_entries = 0;
 
-  dfs<Group, &Group::Groups>(db.root().lock(),
+  dfs<Group, &Group::Groups>(db.root(),
                              [&](const std::shared_ptr<Group>& group,
                                  std::size_t level) {
     if (level > std::numeric_limits<uint16_t>::max())
@@ -696,7 +696,7 @@ void KdbFile::Export(const std::string& path, const Database& db,
   });
 
   num_groups = 0;
-  dfs<Group, &Group::Groups>(db.root().lock(),
+  dfs<Group, &Group::Groups>(db.root(),
                              [&](const std::shared_ptr<Group>& group,
                                  std::size_t) {
     for (const auto entry : group->Entries()) {

@@ -46,7 +46,7 @@ class Database final {
   std::shared_ptr<Metadata> meta_;
 
  public:
-  std::weak_ptr<Group> root() const { return root_; }
+  std::shared_ptr<Group> root() const { return root_; }
   void set_root(std::shared_ptr<Group> root) { root_ = root; }
 
   Cipher cipher() const { return cipher_; }

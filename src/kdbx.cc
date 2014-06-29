@@ -911,7 +911,7 @@ void KdbxFile::WriteXml(std::ostream& dst, RandomObfuscator& obfuscator,
       kpf_node.append_child("Root").append_child("Group");
 
   WriteMeta(meta_node, obfuscator, db.meta());
-  WriteGroup(group_node, obfuscator, db.root().lock());
+  WriteGroup(group_node, obfuscator, db.root());
 
   doc.save(dst);
 }
