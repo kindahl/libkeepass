@@ -52,7 +52,7 @@ int main(int argc, const char * argv[]) {
       std::cout << file.Import(path, key)->root()->ToJson() <<
           std::endl;
     }
-  } catch (std::runtime_error& e) {
+  } catch (std::exception& e) {
     std::cerr << "error: " << e.what() << std::endl;
   }
 

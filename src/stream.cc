@@ -22,6 +22,7 @@
 
 #include <openssl/sha.h>
 
+#include "exception.hh"
 #include "format.hh"
 
 namespace keepass {
@@ -45,7 +46,7 @@ int hashed_istreambuf::underflow() {
     src_.read(reinterpret_cast<char*>(&header), sizeof(BlockHeader));
 
     if (header.block_index != block_index_)
-      throw std::runtime_error("block index mismatch.");
+      throw IoError("Block index mismatch.");
     block_index_++;
 
     block_.clear();
@@ -55,14 +56,14 @@ int hashed_istreambuf::underflow() {
 
     if (header.block_size == 0) {
       if (header.block_hash != kEmptyHash)
-        throw std::runtime_error("corrupt end-of-stream block.");
+        throw IoError("Corrupt EOS block.");
 
       return std::char_traits<char>::eof();
     }
 
     // Verify the block integrity.
     if (GetBlockHash() != header.block_hash)
-      throw std::runtime_error("block integrity failed.");
+      throw IoError("Block checksum error.");
 
     setg(block_.data(), block_.data(), block_.data() + block_.size());
   }
@@ -95,8 +96,8 @@ int hashed_ostreambuf::overflow(int c) {
     return c;
 
   if (c > 0xff) {
-    throw std::runtime_error(
-        "internal error, trying to write multiple bytes to byte stream.");
+    assert(false);
+    throw InternalError("Trying to write multiple bytes to stream.");
   }
 
   block_.push_back(static_cast<char>(c));
@@ -129,8 +130,10 @@ gzip_istreambuf::gzip_istreambuf(std::istream& src) :
   z_stream_.avail_out = output_.size();
   z_stream_.next_out = reinterpret_cast<uint8_t*>(output_.data());
 
-  if (inflateInit2(&z_stream_, 16 + MAX_WBITS) != Z_OK)
-    throw std::runtime_error("failed to initialize gzip decompressor.");
+  if (inflateInit2(&z_stream_, 16 + MAX_WBITS) != Z_OK) {
+    assert(false);
+    throw InternalError("Failed to initialize the gzip decompressor.");
+  }
 }
 
 gzip_istreambuf::~gzip_istreambuf() {
@@ -159,8 +162,7 @@ int gzip_istreambuf::underflow() {
     int res = inflate(&z_stream_, Z_NO_FLUSH);
     assert(res != Z_STREAM_ERROR);
     if (res < 0) {
-      throw std::runtime_error(
-          Format() << "gzip stream error (" << res << ")");
+      throw IoError(Format() << "Gzip inflation error (" << res << ").");
     }
 
     std::size_t output_bytes = output_.size() - z_stream_.avail_out;
@@ -184,7 +186,8 @@ gzip_ostreambuf::gzip_ostreambuf(std::ostream& dst) :
 
   if (deflateInit2(&z_stream_, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
                    16 + MAX_WBITS, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
-    throw std::runtime_error("failed to initialize gzip compressor.");
+    assert(false);
+    throw InternalError("Failed to initialize the gzip compressor.");
   }
 }
 
@@ -224,15 +227,15 @@ int gzip_ostreambuf::overflow(int c) {
     return c;
 
   if (c > 0xff) {
-    throw std::runtime_error(
-        "internal error, trying to write multiple bytes to byte stream.");
+    assert(false);
+    throw InternalError("Trying to write multiple bytes to stream.");
   }
 
   buffer_.push_back(static_cast<char>(c));
 
   if (buffer_.size() == kBufferSize) {
     if (!WriteOutput(false))
-      throw std::runtime_error("error deflating data.");
+      throw IoError("Gzip deflation error.");
   }
 
   return std::char_traits<char>::to_int_type(static_cast<char>(c));

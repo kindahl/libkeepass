@@ -26,6 +26,7 @@
 
 #include "base64.hh"
 #include "cipher.hh"
+#include "exception.hh"
 #include "pugixml.hh"
 
 namespace keepass {
@@ -82,7 +83,7 @@ void Key::SetPassword(const std::string& password) {
 void Key::SetKeyFile(const std::string& path) {
   std::ifstream src(path, std::ios::in | std::ios::binary);
   if (!src.is_open())
-    throw std::runtime_error("file not found.");
+    throw FileNotFoundError();
 
   // First, try to parse the key file as XML.
   pugi::xml_document doc;
@@ -90,7 +91,7 @@ void Key::SetKeyFile(const std::string& path) {
     std::string key_str = base64_decode(
         doc.child("KeyFile").child("Key").child_value("Data"));
     if (key_str.size() != 32)
-      throw std::runtime_error("invalid key size in key file.");
+      throw FormatError("Invalid key size in key file.");
 
     std::copy(key_str.begin(), key_str.end(), key_.keyfile_key_.begin());
     return;
@@ -104,13 +105,13 @@ void Key::SetKeyFile(const std::string& path) {
             std::istreambuf_iterator<char>(), 
             std::back_inserter(data));
   if (data.size() != 64)
-    throw std::runtime_error("unknown key file format.");
+    throw FormatError("Unknown key file format.");
 
   for (std::size_t i = 0; i < key_.keyfile_key_.size(); ++i) {
     char c[2] = { data[i * 2], data[i * 2 + 1] };
 
     if (!std::isxdigit(c[0]) || !std::isxdigit(c[1]))
-      throw std::runtime_error("unknown key file format.");
+      throw FormatError("Unknown key file format.");
 
     uint8_t v = std::stoi(std::string(c, 2), 0, 16);
     key_.keyfile_key_[i] = v;

@@ -20,6 +20,7 @@
 
 #include <gtest/gtest.h>
 
+#include "exception.hh"
 #include "kdb.hh"
 #include "key.hh"
 
@@ -63,6 +64,24 @@ std::string GetTestJson(const std::string& name) {
 
 }   // namespace
 
+TEST(KdbTest, NonExistingFile) {
+  Key key("password");
+
+  KdbFile file;
+  EXPECT_THROW(file.Import(GetTestPath("_.kdb"), key),
+               FileNotFoundError);
+}
+
+TEST(KdbTest, NonKdbFile) {
+  Key key("password");
+
+  KdbFile file;
+  EXPECT_THROW(file.Import("./test/data/hashed_stream-0", key),
+               FormatError);  // Too small to even contain header.
+  EXPECT_THROW(file.Import("./test/data/hashed_stream-128", key),
+               FormatError);  // Fits header but doesn't have signature.
+}
+
 TEST(KdbTest, CorrectPassword) {
   Key key("password");
 
@@ -75,7 +94,7 @@ TEST(KdbTest, InvalidPassword) {
 
   KdbFile file;
   EXPECT_THROW(file.Import(GetTestPath("groups-1-empty-pw-aes.kdb"), key),
-               std::runtime_error);
+               PasswordError);
 }
 
 TEST(KdbTest, ImportGroups1) {

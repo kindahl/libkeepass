@@ -30,6 +30,8 @@
 
 #include "base64.hh"
 #include "cipher.hh"
+#include "exception.hh"
+#include "format.hh"
 #include "icon.hh"
 #include "io.hh"
 #include "iterator.hh"
@@ -142,8 +144,10 @@ std::time_t KdbxFile::ParseDateTime(const char* text) const {
   
   std::tm tm;
   char* res = strptime(text, "%Y-%m-%dT%H:%M:%S", &tm);
-  if (res == nullptr)
-     throw std::runtime_error("malformed xml, unable to parse date.");
+  if (res == nullptr) {
+    assert(false);
+    return 0;
+  }
 
   // Format is expected to always be in UTC.
   assert(*res == 'Z' || *res == '\0');
@@ -550,8 +554,8 @@ std::shared_ptr<Entry> KdbxFile::ParseEntry(
       if (ref_attr) {
         auto it = binary_pool_.find(ref_attr.value());
         if (it == binary_pool_.end()) {
-          throw std::runtime_error(
-              "entry refers to non-existing binary data.");
+          throw FormatError(
+              "Entry attachment refers to non-existing binary data.");
         }
 
         binary = it->second;
@@ -839,19 +843,19 @@ void KdbxFile::ParseXml(std::istream& src,
                         Database& db) {
   pugi::xml_document doc;
   if (!doc.load(src, pugi::parse_default | pugi::parse_trim_pcdata))
-    throw std::runtime_error("unable to parse xml.");
+    throw FormatError("Malformed XML in KDBX.");
 
   pugi::xml_node kpf_node = doc.child("KeePassFile");
   if (!kpf_node)
-    throw std::runtime_error("malformed xml.");
+    throw FormatError("No \"KeePassFile\" element in KDBX XML.");
 
   pugi::xml_node meta_node = kpf_node.child("Meta");
   if (!meta_node)
-    throw std::runtime_error("malformed xml.");
+    throw FormatError("No \"Meta\" element in KDBX XML.");
 
   pugi::xml_node group_node = kpf_node.child("Root").child("Group");
   if (!group_node)
-    throw std::runtime_error("malformed xml.");
+    throw FormatError("No \"Root\" or \"Group\" element in KDBX XML.");
 
   std::shared_ptr<Metadata> meta = ParseMeta(meta_node, obfuscator);
   std::shared_ptr<Group> root = ParseGroup(group_node, obfuscator);
@@ -922,26 +926,28 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
 
   std::ifstream src(path, std::ios::binary);
   if (!src.is_open())
-    throw std::runtime_error("file not found.");
+    throw FileNotFoundError();
 
   // Read header.
   KdbxHeader header;
-  src.read(reinterpret_cast<char *>(&header), sizeof(header));
-  if (!src.good())
-    throw std::runtime_error("unable to read file header.");
-
+  try {
+    header = consume<KdbxHeader>(src);
+  } catch (std::exception& e) {
+    throw FormatError("Not a KDBX database.");
+  }
   if (header.signature0 != kKdbxSignature0 ||
       header.signature1 != kKdbxSignature1) {
-    throw std::runtime_error("not a keepass2 database.");
+    throw FormatError("Not a KDBX database.");
   }
 
   uint32_t kdb_ver =
       header.version & kKdbxVersionCriticalMask;
   uint32_t req_ver =
       kKdbxVersionCriticalMin & kKdbxVersionCriticalMask;
-
-  if (kdb_ver > req_ver)
-    throw std::runtime_error("unsupported database version, database is too new.");
+  if (kdb_ver > req_ver) {
+    throw FormatError(
+        Format() << "KDBX version " << header.version << " is not supported.");
+  }
 
   std::array<uint8_t, 32> content_start_bytes = { { 0 } };
 
@@ -960,7 +966,7 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
                     header_field.size,
                     [&src]() { return src.get(); });
     if (!src.good())
-      throw std::runtime_error("unable to read group field.");
+      throw IoError("Read error.");
 
     assert(field.str().size() == header_field.size);
 
@@ -970,13 +976,13 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
         break;
       case KdbxHeaderField::kCipherId:
         if (consume<std::array<uint8_t, 16>>(field) != kKdbxCipherAes)
-          throw std::runtime_error("unsupported crypto algorithm in header.");
+          throw FormatError("Unknown cipher in KDBX.");
         db->set_cipher(Database::Cipher::kAes);
         break;
       case KdbxHeaderField::kCompressionFlags: {
         uint32_t comp_flags = consume<uint32_t>(field);
         if (comp_flags > static_cast<uint32_t>(kKdbxCompressionFlags::kCount))
-          throw std::runtime_error("unsupported compression method in header.");
+          throw FormatError("Unknown compression method in KDBX.");
         db->set_compress(comp_flags ==
             static_cast<uint32_t>(kKdbxCompressionFlags::kGzip));
         break;
@@ -986,49 +992,38 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
         break;
       case KdbxHeaderField::kTransformSeed:
         if (header_field.size != 32)
-          throw std::runtime_error("illegal transform seed size in header.");
+          throw FormatError("Illegal transform seed size in KDBX.");
         db->set_transform_seed(consume<std::array<uint8_t, 32>>(field));
         break;
       case KdbxHeaderField::kTransformRounds:
         db->set_transform_rounds(consume<uint64_t>(field));
         break;
       case KdbxHeaderField::kExcryptionInitVec:
-        if (header_field.size != 16) {
-          throw std::runtime_error(
-              "illegal initialization vector size in header.");
-        }
+        if (header_field.size != 16)
+          throw FormatError("Illegal initialization vector size in KDBX.");
         db->set_init_vector(consume<std::array<uint8_t, 16>>(field));
         break;
       case KdbxHeaderField::kInnerRandomStreamKey:
-        if (header_field.size != 32) {
-          throw std::runtime_error(
-              "illegal protected stream key size in header.");
-        }
+        if (header_field.size != 32)
+          throw FormatError("Illegal protected stream key size in KDBX.");
         db->set_inner_random_stream_key(
             consume<std::array<uint8_t, 32>>(field));
         break;
       case KdbxHeaderField::kContentStreamStartBytes:
-        if (header_field.size != 32) {
-          throw std::runtime_error(
-              "illegal protected stream start sequence in header.");
-        }
+        if (header_field.size != 32)
+          throw FormatError("Illegal stream start sequence size in KDBX.");
         content_start_bytes = consume<std::array<uint8_t, 32>>(field);
         break;
       case KdbxHeaderField::kInnerRandomStreamId: {
-        // FIXME: Investigate if support for other random streams is necessary.
         uint32_t inner_random_stream_id = consume<uint32_t>(field);
         if (inner_random_stream_id !=
             static_cast<uint32_t>(kKdbxRandomStream::kSalsa20)) {
-          throw std::runtime_error("unsupported random stream in header.");
+          throw FormatError("Unknown random stream in KDBX.");
         }
-        /*if (inner_random_stream_id >
-            static_cast<uint32_t>(kKdbxRandomStream::kCount)) {
-          throw std::runtime_error("unsupported random stream in header.");
-        }*/
         break;
       }
       default:
-        throw std::runtime_error("illegal field in group.");
+        throw FormatError("Illegal header field in KDBX.");
         break;
     }
   }
@@ -1075,15 +1070,15 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
 
   try {
     decrypt_cbc(src, content, *cipher);
-  } catch (std::runtime_error& e) {
-    throw std::runtime_error("invalid password.");
+  } catch (std::exception& e) {
+    throw PasswordError();
   }
 
   std::array<uint8_t, 32> content_start_bytes_tst;
   content.read(reinterpret_cast<char*>(content_start_bytes_tst.data()),
                content_start_bytes_tst.size());
   if (!content.good() || content_start_bytes != content_start_bytes_tst)
-    throw std::runtime_error("invalid password or database is corrupt.");
+    throw PasswordError();
 
   // Prepare deobfuscation stream.
   std::array<uint8_t, 32> final_inner_random_stream_key;
@@ -1110,7 +1105,7 @@ std::unique_ptr<Database> KdbxFile::Import(const std::string& path,
 
   // Validate header hash.
   if (header_hash_ != header_hash)
-    throw std::runtime_error("header checksum error.");
+    throw FormatError("Header checksum error in KDBX.");
 
   return db;
 }
@@ -1121,7 +1116,7 @@ void KdbxFile::Export(const std::string& path, const Database& db,
 
   std::ofstream dst(path, std::ios::out | std::ios::binary);
   if (!dst.is_open())
-    throw std::runtime_error("unable to open file.");
+    throw IoError("Unable to open database for writing.");
 
   // Produce the final key used for encrypting the contents.
   std::array<uint8_t, 32> transformed_key = key.Transform(
@@ -1159,7 +1154,8 @@ void KdbxFile::Export(const std::string& path, const Database& db,
 
   if (db.master_seed().size() >
       std::numeric_limits<decltype(KdbxHeaderField::size)>::max()) {
-    throw std::runtime_error("master seed is too large.");
+    assert(false);
+    throw InternalError("Master seed size exceeds KDBX maximum.");
   }
   conserve<KdbxHeaderField>(header_stream, KdbxHeaderField(
       KdbxHeaderField::kMasterSeed, db.master_seed().size()));
@@ -1236,11 +1232,7 @@ void KdbxFile::Export(const std::string& path, const Database& db,
   hashed_stream.flush();
 
   // Encrypt content.
-  try {
-    encrypt_cbc(content_stream, dst, *cipher);
-  } catch (std::runtime_error& e) {
-    throw std::runtime_error("internal error.");    // FIXME:
-  }
+  encrypt_cbc(content_stream, dst, *cipher);
 }
 
 }   // namespace keepass

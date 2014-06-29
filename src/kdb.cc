@@ -28,6 +28,7 @@
 #include "cipher.hh"
 #include "database.hh"
 #include "entry.hh"
+#include "exception.hh"
 #include "format.hh"
 #include "group.hh"
 #include "io.hh"
@@ -133,8 +134,10 @@ struct KdbTime {
     time.tm_isdst = -1;
 
     std::time_t res = std::mktime(&time);
-    if (res == -1)
-      throw std::runtime_error("bad time format.");
+    if (res == -1) {
+      assert(false);
+      return 0;
+    }
 
     return res;
   }
@@ -192,7 +195,7 @@ std::shared_ptr<Group> KdbFile::ReadGroup(std::istream& src, uint32_t& id,
                     field_size,
                     [&src]() { return src.get(); });
     if (!src.good())
-      throw std::runtime_error("unable to read group field.");
+      throw IoError("Read error.");
 
     assert(field.str().size() == field_size);
 
@@ -230,13 +233,12 @@ std::shared_ptr<Group> KdbFile::ReadGroup(std::istream& src, uint32_t& id,
       case KdbGroupFieldType::kEnd:
         return group;
       default:
-        throw std::runtime_error("illegal field in group.");
+        throw FormatError("Illegal group field in KDB.");
         break;
     }
   }
 
-  throw std::runtime_error("no end-of-fields found in group.");
-
+  throw FormatError("Missing EOF in KDB group.");
   return group;
 }
 
@@ -304,7 +306,7 @@ std::shared_ptr<Entry> KdbFile::ReadEntry(std::istream& src,
                     field_size,
                     [&src]() { return src.get(); });
     if (!src.good())
-      throw std::runtime_error("unable to read entry field.");
+      throw IoError("Read error.");
 
     assert(field.str().size() == field_size);
 
@@ -382,13 +384,12 @@ std::shared_ptr<Entry> KdbFile::ReadEntry(std::istream& src,
           entry->AddAttachment(attachment);
         return entry;
       default:
-        throw std::runtime_error("illegal field in entry.");
+        throw FormatError("Illegal entry field in KDB.");
         break;
     }
   }
 
-  throw std::runtime_error("no end-of-fields found in entry.");
-
+  throw FormatError("Missing EOF in KDB entry.");
   return entry;
 }
 
@@ -483,34 +484,34 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
                                           const Key& key) {
   std::ifstream src(path, std::ios::in | std::ios::binary);
   if (!src.is_open())
-    throw std::runtime_error("file not found.");
+    throw FileNotFoundError();
 
   // Read header.
   KdbHeader header;
-  src.read(reinterpret_cast<char *>(&header), sizeof(header));
-  if (!src.good())
-    throw std::runtime_error("unable to read file header.");
-
+  try {
+    header = consume<KdbHeader>(src);
+  } catch (std::exception& e) {
+    throw FormatError("Not a KDB database.");
+  }
   if (header.signature0 != kKdbSignature0 ||
       header.signature1 != kKdbSignature1)
-    throw std::runtime_error("not a keepass database.");
+    throw FormatError("Not a KDB database.");
 
   switch (header.version & 0xffffff00) {
     // Version 1.
     case 0x00010000:
-      throw std::runtime_error("kdb version 1 is not supported.");
+      throw FormatError("KDB version 1 is not supported.");
       break;
     // Version 2.
     case 0x00020000:
-      throw std::runtime_error("kdb version 2 is not supported.");
+      throw FormatError("KDB version 2 is not supported.");
       break;
     // Version 3.
     case 0x00030000:
-      //throw std::runtime_error("kdb version 3 is not supported.");
       break;
     default:
-      throw std::runtime_error(
-          Format() << "unsupported kdb version: 0x" << header.version << ".");
+      throw FormatError(
+          Format() << "Unknown KDB version " << header.version << ".");
       break;
   }
 
@@ -542,7 +543,7 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
 
     cipher.reset(new TwofishCipher(final_key, header.init_vector));
   } else {
-    throw std::runtime_error("illegal crypto algorithm in header.");
+    throw FormatError("Unknown cipher in KDB.");
   }
 
   // Decrypt the content.
@@ -550,8 +551,8 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
 
   try {
     decrypt_cbc(src, content, *cipher);
-  } catch (std::runtime_error& e) {
-    throw std::runtime_error("invalid password.");
+  } catch (std::exception& e) {
+    throw PasswordError();
   }
 
   std::array<uint8_t, 32> content_hash;
@@ -572,9 +573,8 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
   content.seekg(0, std::ios::beg);
 
   // Check if contents was successfully decrypted using the specified password.
-  if (content_hash != header.content_hash) {
-    throw std::runtime_error("invalid password.");
-  }
+  if (content_hash != header.content_hash)
+    throw PasswordError();
 
   // Read groups and entries.
   std::vector<std::tuple<std::shared_ptr<Group>, uint16_t>> groups;
@@ -613,7 +613,7 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
 
     if (group_level > last_group_level) {
       if (group_level != last_group_level + 1)
-        throw std::runtime_error("illformed group tree.");
+        throw FormatError("Malformed group tree.");
 
       last_group_by_level[group_level - 1]->AddGroup(group);
       last_group_by_level.push_back(group);
@@ -631,7 +631,7 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
 
     decltype(group_map)::const_iterator it = group_map.find(entry_group_id);
     if (it == group_map.end())
-      throw std::runtime_error("database contains an orphaned entry.");
+      throw FormatError("Database contains an orphaned entry.");
 
     it->second->AddEntry(entry);
   }
@@ -650,7 +650,7 @@ void KdbFile::Export(const std::string& path, const Database& db,
 
   std::ofstream dst(path, std::ios::out | std::ios::binary);
   if (!dst.is_open())
-    throw std::runtime_error("unable to open file.");
+    throw IoError("Unable to open database for writing.");
 
   // Produce the final key used for encrypting the contents.
   std::array<uint8_t, 32> transformed_key = key.Transform(
@@ -685,13 +685,17 @@ void KdbFile::Export(const std::string& path, const Database& db,
   dfs<Group, &Group::Groups>(db.root(),
                              [&](const std::shared_ptr<Group>& group,
                                  std::size_t level) {
-    if (level > std::numeric_limits<uint16_t>::max())
-      throw std::runtime_error("too deep group hierarchy.");    // FIXME: assert?
+    if (level > std::numeric_limits<uint16_t>::max()) {
+      assert(false);
+      throw InternalError("Group hierarchy exceeds KDB maximum.");
+    }
 
     WriteGroup(content, group, num_groups, static_cast<uint16_t>(level));
 
-    if (num_groups == std::numeric_limits<decltype(num_groups)>::max())
-      throw std::runtime_error("too many groups.");     // FIXME: assert?
+    if (num_groups == std::numeric_limits<decltype(num_groups)>::max()) {
+      assert(false);
+      throw InternalError("Group count exceeds KDB maximum.");
+    }
     ++num_groups;
   });
 
@@ -702,8 +706,10 @@ void KdbFile::Export(const std::string& path, const Database& db,
     for (const auto entry : group->Entries()) {
       WriteEntry(content, entry, num_groups);
 
-      if (num_entries == std::numeric_limits<decltype(num_entries)>::max())
-        throw std::runtime_error("too many entries.");  // FIXME: assert?
+      if (num_entries == std::numeric_limits<decltype(num_entries)>::max()) {
+        assert(false);
+        throw InternalError("Entry count exceeds KDB maximum.");
+      }
       ++num_entries;
     }
 
@@ -743,17 +749,10 @@ void KdbFile::Export(const std::string& path, const Database& db,
   header.transform_seed = db.transform_seed();
   header.transform_rounds = db.transform_rounds();
 
-  dst.write(reinterpret_cast<char *>(&header), sizeof(header));
-  if (!dst.good())   // FIXME: Rollback.
-    throw std::runtime_error("unable to write file header.");
+  conserve<KdbHeader>(dst, header);
 
   // Encrypt the content.
-  try {
-    encrypt_cbc(content, dst, *cipher);
-  } catch (std::runtime_error& e) {
-    // FIXME: Rollback.
-    throw std::runtime_error("internal error.");    // FIXME:
-  }
+  encrypt_cbc(content, dst, *cipher);
 }
 
 }   // namespace keepass

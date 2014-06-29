@@ -21,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include "exception.hh"
 #include "stream.hh"
 
 using namespace keepass;
@@ -143,7 +144,7 @@ TEST(StreamTest, ReadBadHashedStream) {
   EXPECT_THROW({
     std::string str = std::string(std::istreambuf_iterator<char>(stream),
                                   std::istreambuf_iterator<char>());
-  }, std::runtime_error);
+  }, IoError);
 }
 
 TEST(StreamTest, WriteEmptyHashedStream) {

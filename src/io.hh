@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 
+#include "exception.hh"
+
 namespace keepass {
 
 template <typename T>
@@ -30,7 +32,7 @@ inline T consume(std::istream& src) {
   T val;
   src.read(reinterpret_cast<char *>(&val), sizeof(T));
   if (!src.good())
-    throw std::runtime_error("trying to consume past data limit.");
+    throw IoError("Read error.");
 
   return val;
 }

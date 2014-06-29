@@ -20,7 +20,8 @@
 #include <algorithm>
 #include <string>
 #include <locale>
-#include <stdexcept>
+
+#include "exception.hh"
 
 namespace keepass {
 
@@ -75,7 +76,7 @@ void base64_decode(const std::string& src, OutputIterator result) {
   });
 
   if (src_trimmed.size() % 4 != 0)
-    throw std::runtime_error("invalid base64 data.");
+    throw FormatError("Base64 data must be a multiple of four in size.");
 
   uint32_t bits24 = 0;
   std::size_t i = 0;
@@ -97,7 +98,7 @@ void base64_decode(const std::string& src, OutputIterator result) {
 
     std::size_t v = kBase64.find(c);
     if (v == std::string::npos)
-      throw std::runtime_error("invalid character in base64 stream.");
+      throw FormatError("Illegal character in base64 stream.");
 
     bits24 |= static_cast<uint32_t>(v) << (18 - i++ * 6);
     if (i == 4) {

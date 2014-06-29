@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "exception.hh"
 #include "stream.hh"
 #include "util.hh"
 
@@ -71,8 +72,8 @@ void encrypt_ecb(std::istream& src, std::ostream& dst, const Cipher<16>& cipher)
                                     std::size_t src_len,
                                     bool) -> std::size_t {
     if (src_len != 16) {
-      throw std::runtime_error(
-          "encryption failure, ecb requires an even number of blocks.");
+      assert(false);
+      throw InternalError("ECB can only encrypt an even number of blocks.");
     }
 
     cipher.Encrypt(src, dst);
@@ -86,8 +87,8 @@ void decrypt_ecb(std::istream& src, std::ostream& dst, const Cipher<16>& cipher)
                                     std::size_t src_len,
                                     bool) -> std::size_t {
     if (src_len != 16) {
-      throw std::runtime_error(
-          "decryption failure, ecb requires an even number of blocks.");
+      assert(false);
+      throw InternalError("ECB can only decrypt an even number of blocks.");
     }
 
     cipher.Decrypt(src, dst);
@@ -180,7 +181,7 @@ void decrypt_cbc(std::istream& src, std::ostream& dst, const Cipher<16>& cipher)
                                     std::size_t src_len,
                                     bool last) -> std::size_t {
     if (src_len != 16)
-      throw std::runtime_error("corrupted data.");
+      throw IoError("Decryption error.");
 
     cipher.Decrypt(src, dst);
 
@@ -192,11 +193,11 @@ void decrypt_cbc(std::istream& src, std::ostream& dst, const Cipher<16>& cipher)
       // Handle PKCS #7 padding for the last block.
       uint32_t pad_len = dst[15];
       if (pad_len > 16)
-        throw std::runtime_error("corrupted data.");
+        throw IoError("Decryption error.");
 
       for (std::size_t i = 16 - pad_len; i < 16; ++i) {
         if (dst[i] != pad_len)
-          throw std::runtime_error("corrupted data.");
+          throw IoError("Decryption error.");
       }
 
       return 16 - pad_len;
