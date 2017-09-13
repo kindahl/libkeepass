@@ -43,6 +43,10 @@
 // For placement new
 #include <new>
 
+#if __GNUC__ > 6
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
+
 #ifdef _MSC_VER
 #	pragma warning(push)
 #	pragma warning(disable: 4127) // conditional expression is constant
