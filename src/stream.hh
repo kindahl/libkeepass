@@ -17,11 +17,13 @@
  */
 
 #pragma once
+#include <array>
 #include <algorithm>
 #include <cassert>
 #include <memory>
 #include <istream>
 #include <ostream>
+#include <vector>
 
 #include <zlib.h>
 
