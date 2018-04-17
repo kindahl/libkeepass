@@ -190,7 +190,7 @@ void KdbxFile::WriteProtectedString(pugi::xml_node& node,
                                     const protect<std::string>& str,
                                     RandomObfuscator& obfuscator) const {
   if (str.is_protected()) {
-    node.append_attribute("Protected").set_value(true);
+    node.append_attribute("Protected").set_value("True");
     node.text().set(base64_encode(obfuscator.Process(*str)).c_str());
   } else {
     node.text().set(str->c_str());
