@@ -425,12 +425,12 @@ void KdbxFile::WriteMeta(pugi::xml_node& meta_node,
     bin_node.append_attribute("ID").set_value(binary_id);
 
     if (binary->data().is_protected()) {
-      bin_node.append_attribute("Protected").set_value(true);
+      bin_node.append_attribute("Protected").set_value("True");
       bin_node.text().set(base64_encode(obfuscator.Process(
           *binary->data())).c_str());
     } else {
       if (binary->compress()) {
-        bin_node.append_attribute("Compressed").set_value(true);
+        bin_node.append_attribute("Compressed").set_value("True");
         std::stringstream compressed_data;
 
         gzip_ostreambuf gzip_streambuf(compressed_data);
