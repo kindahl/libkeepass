@@ -637,7 +637,7 @@ std::unique_ptr<Database> KdbFile::Import(const std::string& path,
   }
 
   db->set_root(group_root);
-  return std::move(db);
+  return db;
 }
 
 void KdbFile::Export(const std::string& path, const Database& db,

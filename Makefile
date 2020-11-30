@@ -73,4 +73,4 @@ libkeepass: $(LIBKEEPASS)
 sample: $(SAMPLE)
 
 test: $(TEST)
-	$(OUT_DIR)/test
+	TZ=CET $(OUT_DIR)/test
