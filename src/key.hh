@@ -20,6 +20,7 @@
 #include <array>
 #include <cstdint>
 #include <vector>
+#include <string>
 
 namespace keepass {
 
