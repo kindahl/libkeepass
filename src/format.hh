@@ -23,8 +23,8 @@ class Format {
  private:
   std::stringstream str_;
 
-  Format(const Format& rhs) = default;
-  Format& operator=(const Format& rhs) = default;
+  Format(const Format& rhs) = delete;
+  Format& operator=(const Format& rhs) = delete;
 
  public:
   Format() = default;

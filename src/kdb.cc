@@ -39,9 +39,9 @@ namespace keepass {
 
 const uint32_t kKdbSignature0 = 0x9aa2d903;
 const uint32_t kKdbSignature1 = 0xb54bfb65;
-const uint32_t kKdbFlagSha2 = 0x00000001;
+//const uint32_t kKdbFlagSha2 = 0x00000001;
 const uint32_t kKdbFlagRijndael = 0x00000002;
-const uint32_t kKdbFlagArcFour = 0x00000004;
+//const uint32_t kKdbFlagArcFour = 0x00000004;
 const uint32_t kKdbFlagTwofish = 0x00000008;
 
 #pragma pack(push, 1)
@@ -703,7 +703,7 @@ void KdbFile::Export(const std::string& path, const Database& db,
   dfs<Group, &Group::Groups>(db.root(),
                              [&](const std::shared_ptr<Group>& group,
                                  std::size_t) {
-    for (const auto entry : group->Entries()) {
+    for (const auto& entry : group->Entries()) {
       WriteEntry(content, entry, num_groups);
 
       if (num_entries == std::numeric_limits<decltype(num_entries)>::max()) {

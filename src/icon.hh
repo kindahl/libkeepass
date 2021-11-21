@@ -17,6 +17,7 @@
  */
 
 #pragma once
+#include <array>
 #include <vector>
 
 namespace keepass {
